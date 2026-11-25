@@ -1,0 +1,70 @@
+// bilkrnl enclave + blast-chamber lifecycle (host-side formal model).
+// Mirrors bilkrnl-core::enclave::EnclaveSlot + chamber dispose-then-ratify (2C).
+// Tooling: https://github.com/bsommers/bil  (Bounded Invariant Logic)
+//
+// Run (bil on PATH or via path to checkout):
+//   bil model-check specs/bil/enclave_chamber.bil
+//   bil verify specs/bil/enclave_chamber.bil --allow-bounded
+//   bil emit-verus specs/bil/enclave_chamber.bil
+
+type Phase = Empty | Loaded | Ran | Disposed
+type CapLevel = CapNone | CapCompute | CapIoOut
+type ExitKind = ExitHalt | ExitBudget | ExitFault | ExitNone
+
+// Capability ratchet: ordinal None < Compute < IoOut. Weaken only.
+fn can_weaken(from: CapLevel, to: CapLevel) -> Bool
+  ensures result == true || result == false
+=
+  if from == CapIoOut -> true
+  [] from == CapCompute -> (to == CapCompute || to == CapNone)
+  [] from == CapNone -> (to == CapNone)
+  fi
+
+// Single-flight enclave: load → run → dispose → ratify. Chamber only after Disposed.
+system EnclaveChamber {
+  state phase: Phase = Empty
+  state caps: CapLevel = CapNone
+  state exit_kind: ExitKind = ExitNone
+  state ratified: Bool = false
+  state mem_zero: Bool = true
+  state busy: Bool = false
+
+  invariant RatifyAfterDispose: ratified => phase == Disposed
+  invariant DisposedImpliesZero: phase == Disposed => mem_zero
+  invariant RatifyNeedsExit: ratified => (exit_kind == ExitHalt || exit_kind == ExitBudget || exit_kind == ExitFault)
+  invariant BusyWhileLive: (phase == Loaded || phase == Ran) => busy
+  invariant IdleWhenEmpty: (phase == Empty || phase == Disposed) => !busy
+  invariant DisposedCapsNone: phase == Disposed => caps == CapNone
+
+  transition
+     phase == Empty && !busy ->
+       phase := Loaded, busy := true, mem_zero := false, caps := CapIoOut, exit_kind := ExitNone, ratified := false
+  [] phase == Disposed && !busy ->
+       phase := Loaded, busy := true, mem_zero := false, caps := CapIoOut, exit_kind := ExitNone, ratified := false
+  [] phase == Loaded ->
+       phase := Ran, exit_kind := ExitHalt
+  [] phase == Loaded ->
+       phase := Ran, exit_kind := ExitBudget
+  [] phase == Loaded ->
+       phase := Ran, exit_kind := ExitFault
+  [] phase == Loaded ->
+       phase := Disposed, busy := false, mem_zero := true, caps := CapNone
+  [] phase == Ran ->
+       phase := Disposed, busy := false, mem_zero := true, caps := CapNone
+  [] phase == Disposed ->
+       phase := Disposed, mem_zero := true, caps := CapNone
+  [] phase == Disposed && (exit_kind == ExitHalt || exit_kind == ExitBudget || exit_kind == ExitFault) ->
+       ratified := true
+  [] phase == Disposed && !busy ->
+       phase := Empty, ratified := false, exit_kind := ExitNone, mem_zero := true
+}
+
+fn weaken_io_to_compute_ok() -> Bool
+  ensures result == true
+=
+  can_weaken(CapIoOut, CapCompute)
+
+fn weaken_none_to_compute_forbidden() -> Bool
+  ensures result == false
+=
+  can_weaken(CapNone, CapCompute)

@@ -111,6 +111,41 @@ check_1c_roadmap() {
   pass "1C roadmap present"
 }
 
+refresh_docs() {
+  # Post-build docs refresh: regenerate neon-grid SVG/PNG kit (showcasing-graphics-in-docs).
+  if [[ ! -f "$ROOT/docs/index.html" ]]; then
+    fail "missing docs/index.html"
+  fi
+  python3 "$ROOT/scripts/render-graphics.py" || fail "render-graphics.py"
+  [[ -f "$ROOT/docs/assets/logo.svg" ]] || fail "missing docs/assets/logo.svg"
+  [[ -f "$ROOT/docs/assets/logo.png" ]] || fail "missing docs/assets/logo.png"
+  [[ -f "$ROOT/docs/assets/examples/architecture.svg" ]] || fail "missing architecture.svg"
+  [[ -f "$ROOT/docs/.nojekyll" ]] || fail "missing docs/.nojekyll"
+  pass "docs graphics refresh"
+}
+
+# Optional host-side formal specs via bsommers/bil (Bounded Invariant Logic).
+# Never linked into the UEFI kernel — CLI only. Skip cleanly if bil is absent.
+run_bil_specs() {
+  local spec="$ROOT/specs/bil/enclave_chamber.bil"
+  [[ -f "$spec" ]] || fail "missing $spec"
+  local bil_bin=""
+  if command -v bil >/dev/null 2>&1; then
+    bil_bin="$(command -v bil)"
+  elif [[ -x /tmp/bil-clone/target/release/bil ]]; then
+    bil_bin=/tmp/bil-clone/target/release/bil
+  elif [[ -n "${BIL_BIN:-}" && -x "${BIL_BIN}" ]]; then
+    bil_bin="${BIL_BIN}"
+  fi
+  if [[ -z "$bil_bin" ]]; then
+    echo "SKIP: bil CLI not found (install https://github.com/bsommers/bil or set BIL_BIN)"
+    return 0
+  fi
+  "$bil_bin" check "$spec" || fail "bil check"
+  "$bil_bin" model-check "$spec" || fail "bil model-check"
+  pass "bil specs (enclave_chamber)"
+}
+
 case "${ONLY}" in
   "")
     build_core
@@ -126,6 +161,8 @@ case "${ONLY}" in
       build_kernel
       pass "kernel build (quick)"
       check_1c_roadmap
+      run_bil_specs
+      refresh_docs
       echo "verify.sh --quick: OK"
       exit 0
     fi
@@ -135,6 +172,8 @@ case "${ONLY}" in
     run_perf
     run_torture
     check_1c_roadmap
+    run_bil_specs
+    refresh_docs
     echo "verify.sh: ALL GREEN"
     ;;
   boot)
@@ -153,8 +192,14 @@ case "${ONLY}" in
   chamber)
     cargo test -p bilkrnl-tests --test test_chamber --test test_e2e_harness -q
     ;;
+  docs)
+    refresh_docs
+    ;;
+  bil-specs)
+    run_bil_specs
+    ;;
   *)
-    echo "usage: verify.sh [--quick] | [--only boot|unit-cap|unit-isa|integration-enclave|chamber]" >&2
+    echo "usage: verify.sh [--quick] | [--only boot|unit-cap|unit-isa|integration-enclave|chamber|docs|bil-specs]" >&2
     exit 2
     ;;
 esac

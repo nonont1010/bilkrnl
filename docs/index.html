@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>bilkrnl — soft-ISA enclaves &amp; blast chamber</title>
+  <meta name="description" content="UEFI aarch64 research kernel with deterministic soft ISA, capability ratchet, and dispose-then-ratify blast chamber." />
+  <meta property="og:title" content="bilkrnl" />
+  <meta property="og:description" content="UEFI soft-ISA enclaves · blast chamber · cap ratchet" />
+  <meta property="og:image" content="assets/logo.png" />
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg" />
+  <style>
+    :root {
+      --bg-void: #050811;
+      --bg-panel: rgba(11, 20, 40, 0.92);
+      --neon-cyan: #00e5ff;
+      --neon-blue: #38bdf8;
+      --neon-emerald: #00ff9d;
+      --neon-amber: #ffb800;
+      --neon-magenta: #ff2a85;
+      --text-bright: #f0f6fc;
+      --text-muted: #94a3b8;
+      --mono: ui-monospace, "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;
+      --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--sans);
+      color: var(--text-bright);
+      background:
+        radial-gradient(ellipse at 50% 20%, rgba(0, 229, 255, 0.12), transparent 55%),
+        linear-gradient(160deg, #04070f, #081022 50%, #040814);
+      background-attachment: fixed;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 229, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.06) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    .hero {
+      border: 1.5px solid var(--neon-cyan);
+      background: var(--bg-panel);
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 0 24px rgba(0, 229, 255, 0.15);
+    }
+    .hero img { width: 100%; height: auto; display: block; border-radius: 4px; }
+    h1 { font-family: var(--mono); letter-spacing: 0.08em; margin: 1rem 0 0.35rem; }
+    .lede { color: var(--text-muted); max-width: 52rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.55rem 0.9rem; border-radius: 4px;
+      border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
+      text-decoration: none; font-family: var(--mono); font-size: 0.85rem;
+      background: transparent; cursor: pointer;
+    }
+    .btn.primary { background: rgba(0, 229, 255, 0.12); color: var(--text-bright); }
+    .btn:hover { border-color: var(--neon-emerald); color: var(--neon-emerald); }
+    .stats { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
+    .pill {
+      border: 1px solid var(--neon-blue); color: var(--neon-blue);
+      padding: 0.25rem 0.65rem; border-radius: 999px; font-family: var(--mono); font-size: 0.75rem;
+    }
+    .pill.ok { border-color: var(--neon-emerald); color: var(--neon-emerald); }
+    .pill.warn { border-color: var(--neon-amber); color: var(--neon-amber); }
+    section { margin-top: 2.5rem; }
+    section h2 { font-family: var(--mono); font-size: 1.15rem; color: var(--neon-cyan); }
+    .gallery {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem; margin-top: 1rem;
+    }
+    .card {
+      border: 1.5px solid var(--neon-cyan); background: var(--bg-panel);
+      border-radius: 8px; padding: 0.75rem; cursor: pointer;
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
+    }
+    .card:hover { box-shadow: 0 0 20px rgba(0, 229, 255, 0.25); transform: translateY(-2px); }
+    .card img { width: 100%; height: auto; display: block; border-radius: 4px; }
+    .card p { color: var(--text-muted); font-size: 0.85rem; margin: 0.6rem 0 0; }
+    .docs {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.75rem; margin-top: 1rem;
+    }
+    .doc-link {
+      border: 1px solid rgba(0, 229, 255, 0.45); background: var(--bg-panel);
+      padding: 0.9rem; border-radius: 6px; text-decoration: none; color: var(--text-bright);
+    }
+    .doc-link span { display: block; color: var(--text-muted); font-size: 0.8rem; margin-top: 0.35rem; }
+    .filter-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0; }
+    .filter-row button {
+      font-family: var(--mono); font-size: 0.75rem; background: transparent;
+      border: 1px solid var(--text-muted); color: var(--text-muted);
+      border-radius: 999px; padding: 0.25rem 0.7rem; cursor: pointer;
+    }
+    .filter-row button.active, .filter-row button:hover {
+      border-color: var(--neon-cyan); color: var(--neon-cyan);
+    }
+    #search {
+      width: 100%; max-width: 420px; margin-top: 0.5rem;
+      background: #070d1a; border: 1px solid var(--neon-blue); color: var(--text-bright);
+      border-radius: 4px; padding: 0.55rem 0.75rem; font-family: var(--mono);
+    }
+    pre {
+      background: #070d1a; border: 1px solid rgba(0, 229, 255, 0.35);
+      border-radius: 6px; padding: 1rem; overflow-x: auto;
+      font-family: var(--mono); font-size: 0.85rem; color: #5eead4;
+      position: relative;
+    }
+    .copy {
+      position: absolute; top: 0.5rem; right: 0.5rem;
+      font-family: var(--mono); font-size: 0.7rem;
+      border: 1px solid var(--neon-cyan); background: transparent; color: var(--neon-cyan);
+      border-radius: 3px; padding: 0.2rem 0.45rem; cursor: pointer;
+    }
+    .recipe { position: relative; }
+    footer { margin-top: 3rem; color: var(--text-muted); font-size: 0.85rem; }
+    @media (prefers-reduced-motion: reduce) {
+      .card { transition: none; }
+      .card:hover { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <img src="assets/logo.svg" alt="bilkrnl hero banner" />
+      <h1>bilkrnl</h1>
+      <p class="lede">
+        UEFI-bootable research kernel: deterministic soft-ISA enclaves, capability poset/ratchet,
+        and a blast chamber that disposes memory then ratifies results with no trust that the run was safe.
+      </p>
+      <div class="stats">
+        <span class="pill ok">1A interpreter</span>
+        <span class="pill ok">2C chamber</span>
+        <span class="pill warn">1C deferred</span>
+        <span class="pill">TC-01..15</span>
+        <span class="pill">aarch64 virt</span>
+      </div>
+      <div class="actions">
+        <a class="btn primary" href="https://github.com/nonont1010/bilkrnl">GitHub</a>
+        <a class="btn" href="usermanual/">User manual</a>
+        <a class="btn" href="ARCHITECTURE.md">Architecture</a>
+        <button class="btn" type="button" id="copy-install">Copy install</button>
+      </div>
+    </header>
+
+    <section>
+      <h2>Visual architecture &amp; workflows</h2>
+      <div class="gallery" id="gallery">
+        <figure class="card" data-tags="arch core">
+          <img src="assets/examples/architecture.svg" alt="Architecture: host UEFI TCB SoftISA enclave chamber" />
+          <p>Host → UEFI → TCB → SoftISA / Enclave / Chamber</p>
+        </figure>
+        <figure class="card" data-tags="chamber workflow">
+          <img src="assets/examples/blast-chamber.svg" alt="Blast chamber pipeline dispose then ratify" />
+          <p>Load → Run → Dispose → Ratify (2C)</p>
+        </figure>
+        <figure class="card" data-tags="verify testing">
+          <img src="assets/examples/verify-tiers.svg" alt="verify.sh layered test tiers" />
+          <p><code>scripts/verify.sh</code> tiers + docs refresh</p>
+        </figure>
+        <figure class="card" data-tags="caps security">
+          <img src="assets/examples/cap-ratchet.svg" alt="Capability poset weaken-only ratchet" />
+          <p>Capability ratchet — weaken only (TC-09)</p>
+        </figure>
+      </div>
+    </section>
+
+    <section>
+      <h2>Capability explorer</h2>
+      <input id="search" type="search" placeholder="Filter: chamber, isa, verify, uefi…" aria-label="Filter capabilities" />
+      <div class="filter-row" id="filters">
+        <button type="button" class="active" data-filter="all">all</button>
+        <button type="button" data-filter="arch">arch</button>
+        <button type="button" data-filter="chamber">chamber</button>
+        <button type="button" data-filter="verify">verify</button>
+        <button type="button" data-filter="caps">caps</button>
+        <button type="button" data-filter="workflow">workflow</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Quickstart</h2>
+      <div class="recipe">
+        <button class="copy" type="button" data-copy="install">copy</button>
+        <pre id="install-block">rustup target add aarch64-unknown-uefi
+sudo apt-get install -y qemu-system-arm qemu-efi-aarch64 inkscape
+./scripts/verify.sh</pre>
+      </div>
+    </section>
+
+    <section>
+      <h2>Documentation hub</h2>
+      <div class="docs">
+        <a class="doc-link" href="PURPOSE.md">PURPOSE<span>Why this exists</span></a>
+        <a class="doc-link" href="ARCHITECTURE.md">ARCHITECTURE<span>Contracts &amp; flow</span></a>
+        <a class="doc-link" href="HOWTO.md">HOWTO<span>Task recipes</span></a>
+        <a class="doc-link" href="running.md">running<span>QEMU recipes</span></a>
+        <a class="doc-link" href="TESTING.md">TESTING<span>TC matrix</span></a>
+        <a class="doc-link" href="EVIDENCE.md">EVIDENCE<span>What green means</span></a>
+        <a class="doc-link" href="usermanual/">User manual<span>Operator path</span></a>
+        <a class="doc-link" href="roadmap/1c-softcpu.md">1C roadmap<span>Soft-CPU later</span></a>
+        <a class="doc-link" href="roadmap/bil-integration.md">bil integration<span>Bounded Invariant Logic</span></a>
+        <a class="doc-link" href="https://github.com/nonont1010/bilkrnl/blob/main/specs/bil/enclave_chamber.bil">enclave_chamber.bil<span>Model-checked lifecycle</span></a>
+      </div>
+    </section>
+
+    <footer>
+      MIT · graphics from <code>scripts/render-graphics.py</code> · refreshed at end of <code>scripts/verify.sh</code>
+    </footer>
+  </div>
+  <script>
+    const installText = document.getElementById("install-block").innerText;
+    function copyText(t) {
+      navigator.clipboard.writeText(t).catch(() => {});
+    }
+    document.getElementById("copy-install").addEventListener("click", () => copyText(installText));
+    document.querySelectorAll("[data-copy]").forEach((btn) => {
+      btn.addEventListener("click", () => copyText(installText));
+    });
+    const cards = [...document.querySelectorAll("#gallery .card")];
+    const search = document.getElementById("search");
+    const filterBtns = [...document.querySelectorAll("#filters button")];
+    let active = "all";
+    function apply() {
+      const q = search.value.trim().toLowerCase();
+      cards.forEach((c) => {
+        const tags = (c.dataset.tags || "").toLowerCase();
+        const text = c.innerText.toLowerCase();
+        const tagOk = active === "all" || tags.includes(active);
+        const qOk = !q || tags.includes(q) || text.includes(q);
+        c.style.display = tagOk && qOk ? "" : "none";
+      });
+    }
+    filterBtns.forEach((b) => b.addEventListener("click", () => {
+      filterBtns.forEach((x) => x.classList.remove("active"));
+      b.classList.add("active");
+      active = b.dataset.filter;
+      apply();
+    }));
+    search.addEventListener("input", apply);
+  </script>
+</body>
+</html>
