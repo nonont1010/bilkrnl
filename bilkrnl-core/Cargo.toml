@@ -1,0 +1,13 @@
+[package]
+name = "bilkrnl-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "bilkrnl contracts: caps, soft ISA, enclave, blast chamber"
+
+[features]
+default = ["std"]
+std = ["sha2/std"]
+
+[dependencies]
+sha2 = { version = "0.10", default-features = false }

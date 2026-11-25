@@ -1,0 +1,57 @@
+[package]
+name = "bilkrnl-tests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+bilkrnl-core = { path = "../bilkrnl-core" }
+
+[[test]]
+name = "test_cap_poset"
+path = "unit/test_cap_poset.rs"
+
+[[test]]
+name = "test_budget"
+path = "unit/test_budget.rs"
+
+[[test]]
+name = "test_outbuf"
+path = "unit/test_outbuf.rs"
+
+[[test]]
+name = "test_linear_as"
+path = "unit/test_linear_as.rs"
+
+[[test]]
+name = "test_isa_faults"
+path = "unit/test_isa_faults.rs"
+
+[[test]]
+name = "test_single_enclave"
+path = "unit/test_single_enclave.rs"
+
+[[test]]
+name = "test_chamber"
+path = "unit/test_chamber.rs"
+
+[[test]]
+name = "test_image"
+path = "security/test_image.rs"
+
+[[test]]
+name = "test_no_host_escape"
+path = "security/test_no_host_escape.rs"
+
+[[test]]
+name = "test_dispose"
+path = "integration/test_dispose.rs"
+
+[[test]]
+name = "test_zeroization"
+path = "integration/test_zeroization.rs"
+
+[[test]]
+name = "test_e2e_harness"
+path = "system/test_e2e_harness.rs"

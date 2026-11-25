@@ -1,0 +1,10 @@
+[package]
+name = "bilkrnl"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "UEFI-bootable bilkrnl with soft-ISA enclaves and blast chamber"
+
+[dependencies]
+bilkrnl-core = { path = "../bilkrnl-core", default-features = false }
+uefi = { version = "0.33", features = ["panic_handler", "alloc", "global_allocator"] }

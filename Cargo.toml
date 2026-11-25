@@ -1,0 +1,21 @@
+[workspace]
+resolver = "2"
+members = [
+    "bilkrnl-core",
+    "kernel",
+    "tests",
+]
+default-members = ["bilkrnl-core", "tests"]
+
+[workspace.package]
+edition = "2021"
+license = "MIT"
+version = "0.1.0"
+
+[profile.release]
+panic = "abort"
+lto = true
+codegen-units = 1
+
+[profile.dev]
+panic = "abort"
