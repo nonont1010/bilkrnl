@@ -1,0 +1,253 @@
+// bilkrnl blast chamber: RatifySpec Reject FOL (Phase B2, host-side formal model).
+// Mirrors bilkrnl-core::chamber::chamber_ratify (bilkrnl-core/src/chamber.rs).
+// Lifecycle (dispose-then-ratify) lives in specs/bil/enclave_chamber.bil.
+//
+// Run:
+//   bil check       specs/bil/chamber_ratify.bil
+//   bil verify      specs/bil/chamber_ratify.bil --allow-bounded
+//   bil model-check specs/bil/chamber_ratify.bil
+//
+// Abstractions (finite, bounded):
+// - ExitReason::Fault(FaultKind) is flattened into one ExitKind per FaultKind. Payload-carrying
+//   kinds (IllegalOpcode(u8), HostEscapeAttempt(u8)) are matched exactly in Rust; here the
+//   allow_* flag for those kinds means "allowed_exits holds that kind with the identical payload".
+// - allowed_exits (slice) is a membership bitmap: one allow_* Bool per ExitKind.
+// - Cap is its ordinal: None=0 < Compute=1 < IoOutBounded=2.
+// - OutPred ExactBytes / Sha256Eq compare bytes/digests the model cannot see; the comparison
+//   outcome is an input Bool (exact_eq, sha_eq). LenLe(n) and Any are modeled concretely.
+// - artifact_digest = sha256(tag || cycles || out_len || out || code_digest || out_digest);
+//   modeled as the abstract Bool hashed_ok, present iff the decision is Ratified.
+//
+// Note: the SMT encoding does not unfold user calls, so contracts restate predicates inline.
+
+type ExitKind = ExHalt | ExBudget
+              | ExFaultIllegalOpcode | ExFaultPcOob | ExFaultMemOob
+              | ExFaultHostEscape | ExFaultMissingCap | ExFaultOutOverflow
+type OutPredKind = PredExactBytes | PredSha256Eq | PredLenLe | PredAny
+type Decision = Ratified
+              | RejectExitNotAllowed
+              | RejectCyclesOverBudget
+              | RejectOutTooLarge
+              | RejectCapCeilingViolated
+              | RejectOutPredicateFailed
+
+// ---------------------------------------------------------------------------
+// Reject predicates (one pure fn per ChamberReject variant), in check order.
+// ---------------------------------------------------------------------------
+
+// 1. ExitNotAllowed: exit must be a member of allowed_exits (Fault kinds match exactly).
+fn exit_allowed(exit: ExitKind,
+                allow_halt: Bool, allow_budget: Bool,
+                allow_illegal: Bool, allow_pc_oob: Bool, allow_mem_oob: Bool,
+                allow_host_escape: Bool, allow_missing_cap: Bool, allow_out_overflow: Bool) -> Bool
+  ensures result <=> ((exit == ExHalt && allow_halt)
+                   || (exit == ExBudget && allow_budget)
+                   || (exit == ExFaultIllegalOpcode && allow_illegal)
+                   || (exit == ExFaultPcOob && allow_pc_oob)
+                   || (exit == ExFaultMemOob && allow_mem_oob)
+                   || (exit == ExFaultHostEscape && allow_host_escape)
+                   || (exit == ExFaultMissingCap && allow_missing_cap)
+                   || (exit == ExFaultOutOverflow && allow_out_overflow))
+=
+  (exit == ExHalt && allow_halt)
+  || (exit == ExBudget && allow_budget)
+  || (exit == ExFaultIllegalOpcode && allow_illegal)
+  || (exit == ExFaultPcOob && allow_pc_oob)
+  || (exit == ExFaultMemOob && allow_mem_oob)
+  || (exit == ExFaultHostEscape && allow_host_escape)
+  || (exit == ExFaultMissingCap && allow_missing_cap)
+  || (exit == ExFaultOutOverflow && allow_out_overflow)
+
+// A Halt-only spec (demo_ok_spec, all TC-13 specs) rejects every non-Halt exit.
+fn halt_only_rejects_fault() -> Bool
+  ensures result == false
+=
+  exit_allowed(ExFaultIllegalOpcode, true, false, false, false, false, false, false, false)
+
+// 2. CyclesOverBudget: reject iff cycles > max_cycles.
+fn cycles_over(cycles: Int, max_cycles: Int) -> Bool
+  requires cycles >= 0 && max_cycles >= 0
+  ensures result <=> (cycles > max_cycles)
+=
+  cycles > max_cycles
+
+// 3. OutTooLarge (axiom; Rust tests do not exercise it): reject iff out.len > max_out_bytes.
+fn out_too_large(out_len: Int, max_out_bytes: Int) -> Bool
+  requires out_len >= 0 && max_out_bytes >= 0
+  ensures result <=> (out_len > max_out_bytes)
+=
+  out_len > max_out_bytes
+
+// 4. CapCeilingViolated (axiom; Rust tests do not exercise it): caps_at_exit > ceiling.
+fn cap_ceiling_violated(caps_at_exit: Int, ceiling: Int) -> Bool
+  requires caps_at_exit >= 0 && caps_at_exit <= 2 && ceiling >= 0 && ceiling <= 2
+  ensures result <=> (caps_at_exit > ceiling)
+=
+  caps_at_exit > ceiling
+
+// 5. OutPredicateFailed: out_ok(pred, out) == false.
+fn out_ok(pred: OutPredKind, exact_eq: Bool, sha_eq: Bool, out_len: Int, len_le: Int) -> Bool
+  requires out_len >= 0 && len_le >= 0
+  ensures result <=> ((pred == PredAny)
+                   || (pred == PredLenLe && out_len <= len_le)
+                   || (pred == PredExactBytes && exact_eq)
+                   || (pred == PredSha256Eq && sha_eq))
+=
+  (pred == PredAny)
+  || (pred == PredLenLe && out_len <= len_le)
+  || (pred == PredExactBytes && exact_eq)
+  || (pred == PredSha256Eq && sha_eq)
+
+// ---------------------------------------------------------------------------
+// chamber_ratify: first failing check wins; Ratified only if all five pass.
+// exit_ok / pred_ok are the results of exit_allowed / out_ok above.
+// ---------------------------------------------------------------------------
+fn chamber_ratify(exit_ok: Bool, cycles: Int, max_cycles: Int,
+                  out_len: Int, max_out_bytes: Int,
+                  caps_at_exit: Int, ceiling: Int, pred_ok: Bool) -> Decision
+  requires cycles >= 0 && max_cycles >= 0 && out_len >= 0 && max_out_bytes >= 0
+           && caps_at_exit >= 0 && caps_at_exit <= 2 && ceiling >= 0 && ceiling <= 2
+  ensures (!exit_ok => result == RejectExitNotAllowed)
+       && (exit_ok && cycles > max_cycles => result == RejectCyclesOverBudget)
+       && (exit_ok && cycles <= max_cycles && out_len > max_out_bytes => result == RejectOutTooLarge)
+       && (exit_ok && cycles <= max_cycles && out_len <= max_out_bytes
+             && caps_at_exit > ceiling => result == RejectCapCeilingViolated)
+       && (exit_ok && cycles <= max_cycles && out_len <= max_out_bytes
+             && caps_at_exit <= ceiling && !pred_ok => result == RejectOutPredicateFailed)
+       && (result == Ratified <=> (exit_ok && cycles <= max_cycles && out_len <= max_out_bytes
+                                   && caps_at_exit <= ceiling && pred_ok))
+=
+  if !exit_ok -> RejectExitNotAllowed
+  [] exit_ok && cycles > max_cycles -> RejectCyclesOverBudget
+  [] exit_ok && cycles <= max_cycles && out_len > max_out_bytes -> RejectOutTooLarge
+  [] exit_ok && cycles <= max_cycles && out_len <= max_out_bytes
+       && caps_at_exit > ceiling -> RejectCapCeilingViolated
+  [] exit_ok && cycles <= max_cycles && out_len <= max_out_bytes
+       && caps_at_exit <= ceiling && !pred_ok -> RejectOutPredicateFailed
+  [] exit_ok && cycles <= max_cycles && out_len <= max_out_bytes
+       && caps_at_exit <= ceiling && pred_ok -> Ratified
+  fi
+
+// artifact_digest is produced only on Ratified; abstract hashed_ok stands for the sha256.
+fn artifact_digest_present(d: Decision, hashed_ok: Bool) -> Bool
+  ensures result <=> (d == Ratified && hashed_ok)
+=
+  d == Ratified && hashed_ok
+
+// Digest tag mirrors enclave::artifact_digest: Halt=0, BudgetExceeded=1, Fault(_)=2.
+fn exit_tag(exit: ExitKind) -> Int
+  ensures (exit == ExHalt => result == 0) && (exit == ExBudget => result == 1)
+       && ((exit != ExHalt && exit != ExBudget) => result == 2)
+=
+  if exit == ExHalt -> 0
+  [] exit == ExBudget -> 1
+  [] exit != ExHalt && exit != ExBudget -> 2
+  fi
+
+// ---------------------------------------------------------------------------
+// TC-13 witnesses (tests/unit/test_chamber.rs). Spec in all cases: allowed_exits=[Halt],
+// max_cycles=64 (1 for cycles_over), max_out_bytes=8, ceiling=IoOutBounded(2).
+// ok_result: fixture_ok_program -> Halt, out="OK\n" (len 3), caps_at_exit=IoOutBounded(2),
+// cycles well under 64 (5 used here as a representative bound).
+// ---------------------------------------------------------------------------
+
+// tc13_ratify_ok: ExactBytes("OK\n") matches -> Ratified.
+fn tc13_ratify_ok() -> Decision
+  ensures result == Ratified
+=
+  chamber_ratify(true, 5, 64, 3, 8, 2, 2, true)
+
+// tc13_wrong_out_reject: ExactBytes("NO") mismatches -> OutPredicateFailed.
+fn tc13_wrong_out_reject() -> Decision
+  ensures result == RejectOutPredicateFailed
+=
+  chamber_ratify(true, 5, 64, 3, 8, 2, 2, false)
+
+// tc13_wrong_exit_reject: opcode 0x7F -> Fault(IllegalOpcode), not in [Halt] -> ExitNotAllowed
+// (exit_ok == halt_only_rejects_fault() == false; checked before every other predicate).
+fn tc13_wrong_exit_reject() -> Decision
+  ensures result == RejectExitNotAllowed
+=
+  chamber_ratify(false, 1, 64, 0, 8, 1, 2, true)
+
+// tc13_cycles_over_reject: max_cycles=1, ok_result uses more -> CyclesOverBudget.
+fn tc13_cycles_over_reject() -> Decision
+  ensures result == RejectCyclesOverBudget
+=
+  chamber_ratify(true, 5, 1, 3, 8, 2, 2, true)
+
+// Axiom witnesses (no Rust unit test yet): OutTooLarge and CapCeilingViolated.
+fn axiom_out_too_large_reject() -> Decision
+  ensures result == RejectOutTooLarge
+=
+  chamber_ratify(true, 5, 64, 9, 8, 2, 2, true)
+
+fn axiom_cap_ceiling_reject() -> Decision
+  ensures result == RejectCapCeilingViolated
+=
+  chamber_ratify(true, 5, 64, 3, 8, 2, 1, true)
+
+// ---------------------------------------------------------------------------
+// RatifyChamber: one decision per disposed result, nondeterministic adversarial inputs.
+// Small bounded domains (cycles/max in 0..2, len/max in 0..2, caps/ceiling in 0..2).
+// ---------------------------------------------------------------------------
+system RatifyChamber {
+  state decided: Bool = false
+  state decision: Decision = RejectExitNotAllowed
+  state digest: Bool = false
+  state exit_ok: Bool = false
+  state cycles: Int = 0
+  state max_cycles: Int = 0
+  state out_len: Int = 0
+  state max_out: Int = 0
+  state caps: Int = 0
+  state ceiling: Int = 0
+  state pred_ok: Bool = false
+
+  invariant BoundedInputs: cycles >= 0 && cycles <= 2 && max_cycles >= 0 && max_cycles <= 2
+                        && out_len >= 0 && out_len <= 2 && max_out >= 0 && max_out <= 2
+                        && caps >= 0 && caps <= 2 && ceiling >= 0 && ceiling <= 2
+  invariant DigestOnlyWhenRatified: digest => (decided && decision == Ratified)
+  invariant RatifiedImpliesAllChecks: (decided && decision == Ratified) =>
+      (exit_ok && cycles <= max_cycles && out_len <= max_out && caps <= ceiling && pred_ok && digest)
+  invariant ExitCheckedFirst: (decided && !exit_ok) => decision == RejectExitNotAllowed
+  invariant CyclesBeforeLen: (decided && exit_ok && cycles > max_cycles) => decision == RejectCyclesOverBudget
+  invariant LenBeforeCaps: (decided && exit_ok && cycles <= max_cycles && out_len > max_out)
+      => decision == RejectOutTooLarge
+  invariant CapsBeforePred: (decided && exit_ok && cycles <= max_cycles && out_len <= max_out
+      && caps > ceiling) => decision == RejectCapCeilingViolated
+  invariant PredLast: (decided && exit_ok && cycles <= max_cycles && out_len <= max_out
+      && caps <= ceiling && !pred_ok) => decision == RejectOutPredicateFailed
+
+  transition
+  // Adversary perturbs the (undecided) result / spec within bounds.
+     !decided -> exit_ok := !exit_ok
+  [] !decided -> pred_ok := !pred_ok
+  [] !decided && cycles < 2 -> cycles := cycles + 1
+  [] !decided && cycles > 0 -> cycles := cycles - 1
+  [] !decided && max_cycles < 2 -> max_cycles := max_cycles + 1
+  [] !decided && max_cycles > 0 -> max_cycles := max_cycles - 1
+  [] !decided && out_len < 2 -> out_len := out_len + 1
+  [] !decided && out_len > 0 -> out_len := out_len - 1
+  [] !decided && max_out < 2 -> max_out := max_out + 1
+  [] !decided && max_out > 0 -> max_out := max_out - 1
+  [] !decided && caps < 2 -> caps := caps + 1
+  [] !decided && caps > 0 -> caps := caps - 1
+  [] !decided && ceiling < 2 -> ceiling := ceiling + 1
+  [] !decided && ceiling > 0 -> ceiling := ceiling - 1
+  // Chamber decides (chamber_ratify order).
+  [] !decided && !exit_ok ->
+       decided := true, decision := RejectExitNotAllowed, digest := false
+  [] !decided && exit_ok && cycles > max_cycles ->
+       decided := true, decision := RejectCyclesOverBudget, digest := false
+  [] !decided && exit_ok && cycles <= max_cycles && out_len > max_out ->
+       decided := true, decision := RejectOutTooLarge, digest := false
+  [] !decided && exit_ok && cycles <= max_cycles && out_len <= max_out && caps > ceiling ->
+       decided := true, decision := RejectCapCeilingViolated, digest := false
+  [] !decided && exit_ok && cycles <= max_cycles && out_len <= max_out && caps <= ceiling && !pred_ok ->
+       decided := true, decision := RejectOutPredicateFailed, digest := false
+  [] !decided && exit_ok && cycles <= max_cycles && out_len <= max_out && caps <= ceiling && pred_ok ->
+       decided := true, decision := Ratified, digest := true
+  // Next result: chamber resets (decision is single-shot per result).
+  [] decided -> decided := false, digest := false
+}

@@ -1,0 +1,172 @@
+// bilkrnl SoftISA step (host-side formal model) — roadmap Phase B1.
+// Abstracts bilkrnl-core::isa::Vm::step + budget::BudgetAccount::charge_cycle/charge_out
+// + cap::CapPoset::weaken. Tooling: https://github.com/bsommers/bil
+//
+// Abstraction (bounded; NOT the 64 KiB memory):
+//   * pc / acc / mem are abstracted away (no pc/acc/mem state). Ops are nondeterministic
+//     transitions; mem OOB / PcOob are not modelled (covered by TC-05/TC-07 in Rust).
+//   * max_cycles = 3, max_out = 2 (small bounds so the state space is exhaustive).
+//   * Every non-terminal step first does charge_cycle: cycles := cycles + 1 (saturating
+//     is irrelevant at these bounds). If the *new* count > max_cycles the exit is
+//     BudgetExceeded (cycles == max_cycles + 1) and is NOT a fault — matches Rust.
+//   * Cap gate (caps < Compute -> MissingCap) runs after charge_cycle, before op decode.
+//
+// Run:
+//   bil check       specs/bil/softisa_step.bil
+//   bil model-check specs/bil/softisa_step.bil
+//
+// Invariant <-> Rust unit/security test map (docs/TESTING.md):
+//   TC-03 (cycle budget boundaries, tests/unit/test_budget.rs)
+//       BudgetExitExact        exit==ExitBudget => cycles == max_cycles + 1 (not a fault)
+//       CyclesWithinBudget     non-budget exit/live => cycles <= max_cycles
+//       CyclesMonotonic        prev_cycles <= cycles (counter only ever +1)
+//       BudgetNotFault         ExitBudget => fault == FaultNone
+//   TC-04 (out buffer 0 / max / max+1, tests/unit/test_outbuf.rs; also Out cap gate)
+//       OutWithinMax           out_len <= max_out (max+1 => FaultOutOverflow, no push)
+//       OutRequiresIoCap       out_len > 0 => last successful Out had caps == CapIoOut
+//   TC-07 (illegal op / fault typing, tests/unit/test_isa_faults.rs)
+//       FaultTyped             ExitFault <=> fault != FaultNone (budget/halt carry no fault)
+//       TerminalExitCycles     Halt/Fault exits happen only after a successful charge_cycle
+//   TC-08 (no host escape, tests/security/test_no_host_escape.rs)
+//       HostNeverTouched       host_touched == false always (B1 ghost invariant)
+//       EscapeFaultsClosed     host-escape fault => out_len/caps unchanged vs. pre-state,
+//                              and host_touched stays false (never set true on 0xE0..=0xEF)
+//   TC-09 (cap poset ratchet, tests/unit/test_cap_poset.rs)
+//       CapsOnlyWeaken         rank(caps) <= rank(prev_caps) and <= rank(caps_ceiling)
+//       (+ pure fn theorems weaken_* below, same as enclave_chamber.bil)
+
+type CapLevel = CapNone | CapCompute | CapIoOut
+type ExitKind = ExitNone | ExitHalt | ExitBudget | ExitFault
+type FaultKind = FaultNone | FaultMissingCap | FaultOutOverflow | FaultHostEscape | FaultIllegal
+
+// Ordinal of Cap: None=0 < Compute=1 < IoOutBounded=2 (cap.rs).
+fn rank(c: CapLevel) -> Int
+  ensures result >= 0 && result <= 2
+=
+  if c == CapNone -> 0
+  [] c == CapCompute -> 1
+  [] c == CapIoOut -> 2
+  fi
+
+// CapPoset::weaken succeeds iff to <= from.
+fn can_weaken(from: CapLevel, to: CapLevel) -> Bool
+  ensures result == true || result == false
+=
+  if from == CapIoOut -> true
+  [] from == CapCompute -> (to == CapCompute || to == CapNone)
+  [] from == CapNone -> (to == CapNone)
+  fi
+
+system SoftIsaStep {
+  // Budget constants (ResourceBudget { max_cycles, max_out_bytes, .. }).
+  state max_cycles: Int = 3
+  state max_out: Int = 2
+
+  // VM abstract state.
+  state cycles: Int = 0
+  state prev_cycles: Int = 0
+  state out_len: Int = 0
+  state caps: CapLevel = CapIoOut
+  state prev_caps: CapLevel = CapIoOut
+  state caps_ceiling: CapLevel = CapIoOut
+  state exit_kind: ExitKind = ExitNone
+  state fault: FaultKind = FaultNone
+
+  // Ghost / witness state.
+  state host_touched: Bool = false          // B1: must stay false forever
+  state last_out_caps: CapLevel = CapNone   // caps at most recent successful Out
+  state esc_pre_out: Int = 0                // snapshot at host-escape fault
+  state esc_pre_caps: CapLevel = CapIoOut
+
+  // TC-03
+  invariant BudgetExitExact: exit_kind == ExitBudget => cycles == max_cycles + 1
+  invariant BudgetNotFault: exit_kind == ExitBudget => fault == FaultNone
+  invariant CyclesWithinBudget: exit_kind != ExitBudget => (cycles >= 0 && cycles <= max_cycles)
+  invariant CyclesMonotonic: prev_cycles <= cycles && cycles <= prev_cycles + 1
+  // TC-04
+  invariant OutWithinMax: out_len >= 0 && out_len <= max_out
+  invariant OutRequiresIoCap: out_len > 0 => last_out_caps == CapIoOut
+  // TC-07
+  invariant FaultTyped: (exit_kind == ExitFault => fault != FaultNone) && (exit_kind != ExitFault => fault == FaultNone)
+  invariant TerminalExitCycles: (exit_kind == ExitHalt || exit_kind == ExitFault) => cycles >= 1
+  // TC-08
+  invariant HostNeverTouched: host_touched == false
+  invariant EscapeFaultsClosed: fault == FaultHostEscape => (esc_pre_out == out_len && esc_pre_caps == caps && host_touched == false)
+  // TC-09
+  invariant CapsOnlyWeaken: rank(caps) <= rank(prev_caps) && rank(caps) <= rank(caps_ceiling)
+
+  transition
+  // ---- charge_cycle exceeds max: BudgetExceeded exit (not a fault) ----
+    exit_kind == ExitNone && cycles == max_cycles ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, exit_kind := ExitBudget
+
+  // ---- Missing Compute cap gate (after charge) ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps == CapNone ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps,
+      exit_kind := ExitFault, fault := FaultMissingCap
+
+  // ---- Halt (00) ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, exit_kind := ExitHalt
+
+  // ---- Nop (01) / LoadImm / Load / Store / AddImm / SubImm / Jmp / Jz (abstract: no-op) ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps
+
+  // ---- Out (09) with IoOutBounded, room in buffer ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps == CapIoOut && out_len < max_out ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps,
+      out_len := out_len + 1, last_out_caps := caps
+
+  // ---- Out (09) with IoOutBounded, buffer full -> OutOverflow fault, no push ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps == CapIoOut && out_len == max_out ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps,
+      exit_kind := ExitFault, fault := FaultOutOverflow
+
+  // ---- Out (09) without IoOutBounded (Compute) -> MissingCap, no push ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps == CapCompute ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps,
+      exit_kind := ExitFault, fault := FaultMissingCap
+
+  // ---- Weaken (0A) to a legal weaker/equal cap: ratchet ok ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, caps := CapNone
+  [] exit_kind == ExitNone && cycles < max_cycles && (caps == CapIoOut || caps == CapCompute) ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, caps := CapCompute
+  [] exit_kind == ExitNone && cycles < max_cycles && caps == CapIoOut ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, caps := CapIoOut
+
+  // ---- Weaken (0A) strengthening attempt -> MissingCap (caps unchanged) ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps == CapCompute ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps,
+      exit_kind := ExitFault, fault := FaultMissingCap
+
+  // ---- Weaken (0A) with unknown cap byte -> IllegalOpcode fault ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps,
+      exit_kind := ExitFault, fault := FaultIllegal
+
+  // ---- Host-escape byte 0xE0..=0xEF: fault after fetch; no host/mem/acc/out/caps effect ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps,
+      esc_pre_out := out_len, esc_pre_caps := caps,
+      exit_kind := ExitFault, fault := FaultHostEscape
+
+  // ---- Terminal stutter ----
+  [] exit_kind != ExitNone -> exit_kind := exit_kind
+}
+
+fn weaken_io_to_compute_ok() -> Bool
+  ensures result == true
+=
+  can_weaken(CapIoOut, CapCompute)
+
+fn weaken_none_to_compute_forbidden() -> Bool
+  ensures result == false
+=
+  can_weaken(CapNone, CapCompute)
+
+fn weaken_compute_to_io_forbidden() -> Bool
+  ensures result == false
+=
+  can_weaken(CapCompute, CapIoOut)

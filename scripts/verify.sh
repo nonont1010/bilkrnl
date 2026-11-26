@@ -127,8 +127,11 @@ refresh_docs() {
 # Optional host-side formal specs via bsommers/bil (Bounded Invariant Logic).
 # Never linked into the UEFI kernel — CLI only. Skip cleanly if bil is absent.
 run_bil_specs() {
-  local spec="$ROOT/specs/bil/enclave_chamber.bil"
-  [[ -f "$spec" ]] || fail "missing $spec"
+  local specs=(
+    "$ROOT/specs/bil/enclave_chamber.bil"
+    "$ROOT/specs/bil/softisa_step.bil"
+    "$ROOT/specs/bil/chamber_ratify.bil"
+  )
   local bil_bin=""
   if command -v bil >/dev/null 2>&1; then
     bil_bin="$(command -v bil)"
@@ -141,9 +144,13 @@ run_bil_specs() {
     echo "SKIP: bil CLI not found (install https://github.com/bsommers/bil or set BIL_BIN)"
     return 0
   fi
-  "$bil_bin" check "$spec" || fail "bil check"
-  "$bil_bin" model-check "$spec" || fail "bil model-check"
-  pass "bil specs (enclave_chamber)"
+  local spec
+  for spec in "${specs[@]}"; do
+    [[ -f "$spec" ]] || fail "missing $spec"
+    "$bil_bin" check "$spec" || fail "bil check $(basename "$spec")"
+    "$bil_bin" model-check "$spec" || fail "bil model-check $(basename "$spec")"
+  done
+  pass "bil specs (enclave_chamber + softisa_step + chamber_ratify)"
 }
 
 case "${ONLY}" in
