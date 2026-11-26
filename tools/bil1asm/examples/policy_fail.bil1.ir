@@ -1,0 +1,42 @@
+; policy_fail.bil1.ir — same gate; candidate 0x00 not in allowlist → FAIL\n
+.caps   IoOutBounded
+.budget cycles=128 out=8 pages=1
+.entry  start
+
+.byte 0x00
+
+start:
+    ld @0
+    subi 0x2A
+    jz pass
+    ld @0
+    subi 0x55
+    jz pass
+    ld @0
+    subi 0x7F
+    jz pass
+    ldi 0x46
+    out
+    ldi 0x41
+    out
+    ldi 0x49
+    out
+    ldi 0x4C
+    out
+    ldi 0x0A
+    out
+    weaken Compute
+    halt
+pass:
+    ldi 0x50
+    out
+    ldi 0x41
+    out
+    ldi 0x53
+    out
+    ldi 0x53
+    out
+    ldi 0x0A
+    out
+    weaken Compute
+    halt

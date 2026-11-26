@@ -3,6 +3,13 @@
 version = 4
 
 [[package]]
+name = "bil1asm"
+version = "0.1.0"
+dependencies = [
+ "bilkrnl-core",
+]
+
+[[package]]
 name = "bilkrnl"
 version = "0.1.0"
 dependencies = [

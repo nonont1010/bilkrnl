@@ -97,9 +97,27 @@ Maps to TC-05 `tc05_store_oob_fault` (`tests/unit/test_linear_as.rs`).
 - `out_digest` `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
 - `artifact_digest` `9412dc121dfd93894348578d2203f00f9ba5a2545cd49e00f028fa741a9804a8`
 
+### `policy_pass` (sealed policy gate — kernel demo)
+
+Maps to `isa::fixture_policy_pass_program` / `tools/bil1asm/examples/policy_pass.bil1.ir`. Candidate `0x2A` at `@0`, entry=1, allowlist `{0x2A,0x55,0x7F}`, weakens to `Compute` before Halt.
+
+- Expect `EXIT_KIND = Halt (0)`, `cycles = 15`, `out = 50 41 53 53 0a` (`PASS\n`), `caps_at_exit = 1` (Compute).
+- `code_digest` `3f7cdae560a00676d9e0d0daee614adc24b4602e9b86eb9acaeec64c740043f3`
+- `out_digest` `c26de83abdc9496cd1301470918ec39ecca1cf389ef0ae1c6504da1800d1c431`
+- `artifact_digest` `14ad56f22141c89095b78d1eb28cd846b3ad2c331a5c693f24a9a68711b317ea`
+
+### `policy_fail` (same gate, candidate miss)
+
+Maps to `isa::fixture_policy_fail_program` / `policy_fail.bil1.ir`. Candidate `0x00`.
+
+- Expect `EXIT_KIND = Halt (0)`, `cycles = 21`, `out = 46 41 49 4c 0a` (`FAIL\n`), `caps_at_exit = 1`.
+- `code_digest` `9d01a77772057b7f1dd3cdf338de51496e932cf0b96656efd7f4cbfcb555d344`
+- `out_digest` `4f8e9e45f8a9e1843b81eaf3bdf52a6b778d415d23bf985774a9d34a43f69bd5`
+- `artifact_digest` `8bc9a3a5142a177e906ee7acaec3efe6c4ec7686627503b0114fa1b0b8e3dc1e`
+
 ## `tests/` layout
 
-**Now exists (1A-only oracle):** `tests/parity/test_digest_oracle.rs`, wired in `tests/Cargo.toml` as `test_digest_oracle`. It runs all six fixtures above through `Vm::run` and `blast` (after `BIL1` encode/decode) and asserts `code_digest`, `out_digest`, and `artifact_digest` against the hex in this file. It needs no 1C device and no QEMU. Run: `cargo test -p bilkrnl-tests --test test_digest_oracle`. It is not wired into `scripts/verify.sh`.
+**Now exists (1A-only oracle):** `tests/parity/test_digest_oracle.rs`, wired in `tests/Cargo.toml` as `test_digest_oracle` and run from `scripts/verify.sh` unit tier. It runs the six classic fixtures plus `policy_pass` / `policy_fail` through `Vm::run` and `blast` (after `BIL1` encode/decode) and asserts digests against the hex in this file. It needs no 1C device and no QEMU. Run: `cargo test -p bilkrnl-tests --test test_digest_oracle`.
 
 Still future (1C): the opt-in device suite below. Do not wire it into `scripts/verify.sh` until a device exists; V1 must keep passing with the interpreter only.
 

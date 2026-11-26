@@ -1,0 +1,12 @@
+; ok.bil1.ir — reproduces bilkrnl_core::isa::fixture_ok_program
+.caps   IoOutBounded
+.budget cycles=64 out=8 pages=1
+.entry  start
+start:
+    ldi 0x4f   ; 'O'
+    out
+    ldi 0x4b   ; 'K'
+    out
+    ldi 0x0a   ; '\n'
+    out
+    halt

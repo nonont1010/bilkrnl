@@ -166,3 +166,41 @@ fn parity_mem_oob() {
         },
     );
 }
+
+fn policy_image(entry: u32, code: Vec<u8>) -> BytecodeImage {
+    BytecodeImage::new(entry, code, Cap::IoOutBounded, ResourceBudget::new(128, 8, 1)).unwrap()
+}
+
+#[test]
+fn parity_policy_pass() {
+    let (entry, code) = bilkrnl_core::isa::fixture_policy_pass_program();
+    check(
+        "policy_pass",
+        policy_image(entry, code),
+        &Golden {
+            exit: ExitReason::Halt,
+            cycles: 15,
+            out: b"PASS\n",
+            code_digest: "3f7cdae560a00676d9e0d0daee614adc24b4602e9b86eb9acaeec64c740043f3",
+            out_digest: "c26de83abdc9496cd1301470918ec39ecca1cf389ef0ae1c6504da1800d1c431",
+            artifact_digest: "14ad56f22141c89095b78d1eb28cd846b3ad2c331a5c693f24a9a68711b317ea",
+        },
+    );
+}
+
+#[test]
+fn parity_policy_fail() {
+    let (entry, code) = bilkrnl_core::isa::fixture_policy_fail_program();
+    check(
+        "policy_fail",
+        policy_image(entry, code),
+        &Golden {
+            exit: ExitReason::Halt,
+            cycles: 21,
+            out: b"FAIL\n",
+            code_digest: "9d01a77772057b7f1dd3cdf338de51496e932cf0b96656efd7f4cbfcb555d344",
+            out_digest: "4f8e9e45f8a9e1843b81eaf3bdf52a6b778d415d23bf985774a9d34a43f69bd5",
+            artifact_digest: "8bc9a3a5142a177e906ee7acaec3efe6c4ec7686627503b0114fa1b0b8e3dc1e",
+        },
+    );
+}

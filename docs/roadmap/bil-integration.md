@@ -71,7 +71,7 @@ Encode `RatifySpec` as bil axioms; prove Reject paths for wrong exit / over-budg
 - The same hard boundary applies: the tool is host-only, calls `bil` as a subprocess, and is never linked into `kernel` or `bilkrnl-core`.
 
 - [x] B3.0 design notes + reference image hex ([`tools/bil1asm/examples/ok.bil1.txt`](../../tools/bil1asm/examples/ok.bil1.txt))
-- [ ] B3.1 host assembler for profile IR reproducing `fixture_ok_program` byte-for-byte
+- [x] B3.1 host assembler for profile IR reproducing `fixture_ok_program` byte-for-byte (`tools/bil1asm`) + sealed policy-gate examples
 - [ ] B3.2–B3.4 lower bil stack bytecode, `bil verify` side conditions, golden vectors
 
 ## License note

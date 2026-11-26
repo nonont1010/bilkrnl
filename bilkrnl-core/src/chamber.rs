@@ -109,3 +109,28 @@ pub fn demo_ok_spec() -> RatifySpec {
         out_predicate: OutPred::ExactBytes(b"OK\n"),
     }
 }
+
+/// Spec for the sealed policy-gate PASS job (killer enclave workload).
+///
+/// Ceiling is `Compute` (not `None`): SoftISA refuses to step — including `Halt` —
+/// without `Compute`, so a successful gate ends at `Compute` after dropping IO.
+pub fn demo_policy_pass_spec() -> RatifySpec {
+    RatifySpec {
+        allowed_exits: &[ExitReason::Halt],
+        max_cycles: 128,
+        max_out_bytes: 8,
+        required_caps_ceiling: Cap::Compute,
+        out_predicate: OutPred::ExactBytes(b"PASS\n"),
+    }
+}
+
+/// Negative twin: ratify only `FAIL\n` with the same ceilings.
+pub fn demo_policy_fail_spec() -> RatifySpec {
+    RatifySpec {
+        allowed_exits: &[ExitReason::Halt],
+        max_cycles: 128,
+        max_out_bytes: 8,
+        required_caps_ceiling: Cap::Compute,
+        out_predicate: OutPred::ExactBytes(b"FAIL\n"),
+    }
+}

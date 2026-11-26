@@ -15,17 +15,26 @@ Expect markers: `bilkrnl: ready` → `chamber: RATIFIED` → `cli: RATIFIED` (sa
 
 ## Author a BIL1 program (host)
 
+Prefer the assembler (B3.1):
+
+```bash
+cargo run -p bil1asm -- assemble tools/bil1asm/examples/policy_pass.bil1.ir -o /tmp/policy_pass.bil1
+```
+
+Or build an image in Rust from the sealed policy-gate fixture (kernel demo):
+
 ```rust
 use bilkrnl_core::budget::ResourceBudget;
 use bilkrnl_core::cap::Cap;
 use bilkrnl_core::image::BytecodeImage;
-use bilkrnl_core::isa::{Op, fixture_ok_program};
+use bilkrnl_core::isa::fixture_policy_pass_program;
 
+let (entry, code) = fixture_policy_pass_program();
 let img = BytecodeImage::new(
-    0,
-    fixture_ok_program(), // LOAD_IMM/OUT ×3 + HALT → "OK\n"
+    entry,
+    code, // allowlist walk → PASS\n → weaken Compute → Halt
     Cap::IoOutBounded,
-    ResourceBudget::new(64, 8, 1),
+    ResourceBudget::new(128, 8, 1),
 )?;
 let bytes = img.encode(); // ship to enclave_load / load_bytes
 ```
@@ -43,12 +52,12 @@ Manual opcodes (little-endian addresses for Load/Store/Jmp/Jz):
 ## Run the blast pipeline in tests
 
 ```rust
-use bilkrnl_core::chamber::{chamber_ratify, demo_ok_spec};
+use bilkrnl_core::chamber::{chamber_ratify, demo_policy_pass_spec};
 use bilkrnl_core::enclave::{blast, EnclaveSlot};
 
 let mut slot = EnclaveSlot::new();
 let result = blast(&mut slot, img)?;
-assert!(matches!(chamber_ratify(&result, &demo_ok_spec()),
+assert!(matches!(chamber_ratify(&result, &demo_policy_pass_spec()),
     bilkrnl_core::chamber::ChamberDecision::Ratified { .. }));
 ```
 

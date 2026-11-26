@@ -1,0 +1,17 @@
+[package]
+name = "bil1asm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Host-only BIL1 profile IR assembler (B3.1). Never linked into UEFI TCB."
+publish = false
+
+[[bin]]
+name = "bil1asm"
+path = "src/main.rs"
+
+[dependencies]
+bilkrnl-core = { path = "../../bilkrnl-core" }
+
+[dev-dependencies]
+bilkrnl-core = { path = "../../bilkrnl-core" }

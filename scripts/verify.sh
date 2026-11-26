@@ -26,6 +26,7 @@ build_kernel() {
 }
 
 run_unit() {
+  cargo test -p bil1asm -q
   cargo test -p bilkrnl-tests --test test_cap_poset --test test_budget \
     --test test_outbuf --test test_linear_as --test test_isa_faults \
     --test test_single_enclave --test test_chamber --test test_digest_oracle -q
@@ -67,7 +68,7 @@ run_serial_parity() {
 }
 
 run_perf() {
-  # TC-15: demo OK\n fixture is 7 instructions; chamber max_cycles=64 is the hard ratchet.
+  # TC-15: policy-gate PASS is 15 SoftISA ops; chamber max_cycles=128 is the hard ratchet.
   cargo test -p bilkrnl-tests --test test_e2e_harness -q
   "$ROOT/tests/perf/test_cycle_ratchet.sh" >/dev/null
   pass "perf cycle ratchet (TC-15)"

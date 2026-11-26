@@ -122,14 +122,13 @@ The reference case is `fixture_ok_program`: the hand-written profile program in 
 | Step | Deliverable | Gate |
 |------|-------------|------|
 | B3.0 | This doc + [`tools/bil1asm/README.md`](../../tools/bil1asm/README.md) + reference hex | docs only |
-| B3.1 | Host tool assembles a hand-written **profile IR** (text) to `BIL1`; reproduces `fixture_ok_program` byte-for-byte | golden-byte test in the tool's own crate, outside `kernel` / `bilkrnl-core` |
+| B3.1 | Host tool assembles a hand-written **profile IR** (text) to `BIL1`; reproduces `fixture_ok_program` byte-for-byte | **done** — `tools/bil1asm`, golden tests + `policy_pass` / `policy_fail` |
 | B3.2 | Accept bil stack bytecode for the profile subset. Prefer an upstream stable dump format over parsing `Debug` text | reject list above enforced with diagnostics |
 | B3.3 | Range/determinism side conditions checked by running `bil verify` on the source first; refuse to lower on failure | — |
 | B3.4 | Lowered programs added as 1A golden vectors (and 1C parity vectors once 1C exists) | optional tier, skipped when `bil` is absent |
 
-## Explicitly out of V1 verify
+## Verify status
 
-- No assembler, lowering pass, or B3 test runs in `scripts/verify.sh`.
-- No `tools/` crate is added to the Cargo workspace for V1.
-- No B3 output is loaded by the kernel demo or any `tests/` case.
-- Hand-assembled images (`fixture_ok_program` and friends) remain the only enclave code in V1.
+- B3.1 (`bil1asm` assemble/dump + golden tests) runs in `scripts/verify.sh` unit tier.
+- B3.2+ lowering remains out of V1 verify until bil dump format is stable.
+- Kernel demo loads `fixture_policy_pass_program` (lockstep with `tools/bil1asm/examples/policy_pass.bil1.ir`).

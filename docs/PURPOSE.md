@@ -28,7 +28,7 @@ Firecracker isolates a *guest kernel*. bilkrnl isolates *bytecode semantics* ins
 ## Measured motivation
 
 - Repo started empty; the ratchet that matters this weekend is: **no residual enclave memory after dispose** (TC-14) and **no false RATIFIED after QEMU kill** (TC-12).
-- Demo fixture must stay within chamber `max_cycles=64` (TC-15 soft bound: 7 SoftISA ops for `OK\n`).
+- Demo fixture is the sealed policy gate (`PASS\n`); chamber `max_cycles=128` (TC-15: 15 SoftISA ops on the PASS path).
 
 ## Relationship to bil (Bounded Invariant Logic)
 

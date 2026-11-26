@@ -1,0 +1,46 @@
+; policy_pass.bil1.ir — sealed policy gate (candidate in allowlist → PASS\n)
+; SoftISA requires Compute to Halt, so we weaken IoOutBounded → Compute (not None).
+.caps   IoOutBounded
+.budget cycles=128 out=8 pages=1
+.entry  start
+
+; sealed candidate @0 (allowlist values appear as subi immediates; all sealed by code_digest)
+.byte 0x2A
+
+start:
+    ld @0
+    subi 0x2A
+    jz pass
+    ld @0
+    subi 0x55
+    jz pass
+    ld @0
+    subi 0x7F
+    jz pass
+    ; FAIL\n
+    ldi 0x46
+    out
+    ldi 0x41
+    out
+    ldi 0x49
+    out
+    ldi 0x4C
+    out
+    ldi 0x0A
+    out
+    weaken Compute
+    halt
+pass:
+    ; PASS\n
+    ldi 0x50
+    out
+    ldi 0x41
+    out
+    ldi 0x53
+    out
+    ldi 0x53
+    out
+    ldi 0x0A
+    out
+    weaken Compute
+    halt

@@ -142,3 +142,24 @@ fn tc13_cap_ceiling_reject() {
         other => panic!("{:?}", other),
     }
 }
+
+#[test]
+fn policy_pass_spec_ratifies() {
+    use bilkrnl_core::chamber::demo_policy_pass_spec;
+    use bilkrnl_core::isa::fixture_policy_pass_program;
+
+    let mut slot = EnclaveSlot::new();
+    let (entry, code) = fixture_policy_pass_program();
+    let img = BytecodeImage::new(
+        entry,
+        code,
+        Cap::IoOutBounded,
+        ResourceBudget::new(128, 8, 1),
+    )
+    .unwrap();
+    let r = blast(&mut slot, img).unwrap();
+    assert!(matches!(
+        chamber_ratify(&r, &demo_policy_pass_spec()),
+        ChamberDecision::Ratified { .. }
+    ));
+}

@@ -16,7 +16,10 @@ pub mod isa;
 
 pub use budget::ResourceBudget;
 pub use cap::{Cap, CapError, CapPoset};
-pub use chamber::{chamber_ratify, ChamberDecision, ChamberReject, OutPred, RatifySpec};
+pub use chamber::{
+    chamber_ratify, demo_ok_spec, demo_policy_fail_spec, demo_policy_pass_spec, ChamberDecision,
+    ChamberReject, OutPred, RatifySpec,
+};
 pub use enclave::{
     enclave_dispose, enclave_load, enclave_run, blast, DisposeError, EnclaveId, EnclaveSlot,
     LoadError, RunError,

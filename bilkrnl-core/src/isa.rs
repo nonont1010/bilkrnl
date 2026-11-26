@@ -284,3 +284,32 @@ pub fn fixture_ok_program() -> Vec<u8> {
         Op::Halt as u8,
     ]
 }
+
+/// Sealed policy-gate image (PASS): candidate `0x2A` at `@0`, entry=1.
+///
+/// Bytes match `tools/bil1asm/examples/policy_pass.bil1.ir` (B3.1). SoftISA needs
+/// `Compute` to execute `Halt`, so the program weakens `IoOutBounded → Compute`.
+pub fn fixture_policy_pass_program() -> (u32, Vec<u8>) {
+    (
+        1,
+        alloc::vec![
+            0x2a, // candidate
+            0x03, 0x00, 0x00, 0x06, 0x2a, 0x08, 0x2b, 0x00, // ld @0; subi 0x2A; jz pass
+            0x03, 0x00, 0x00, 0x06, 0x55, 0x08, 0x2b, 0x00, // ld @0; subi 0x55; jz pass
+            0x03, 0x00, 0x00, 0x06, 0x7f, 0x08, 0x2b, 0x00, // ld @0; subi 0x7F; jz pass
+            0x02, 0x46, 0x09, 0x02, 0x41, 0x09, 0x02, 0x49, 0x09, 0x02, 0x4c, 0x09, 0x02, 0x0a,
+            0x09, // FAIL\n
+            0x0a, 0x01, 0x00, // weaken Compute; halt
+            0x02, 0x50, 0x09, 0x02, 0x41, 0x09, 0x02, 0x53, 0x09, 0x02, 0x53, 0x09, 0x02, 0x0a,
+            0x09, // PASS\n
+            0x0a, 0x01, 0x00, // weaken Compute; halt
+        ],
+    )
+}
+
+/// Sealed policy-gate image (FAIL): candidate `0x00` at `@0`, same code as PASS twin.
+pub fn fixture_policy_fail_program() -> (u32, Vec<u8>) {
+    let (entry, mut code) = fixture_policy_pass_program();
+    code[0] = 0x00;
+    (entry, code)
+}
