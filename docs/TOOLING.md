@@ -1,8 +1,19 @@
 # Documentation & visualization tooling
 
+## Brand: TRON neon techno-corn
+
+Logo, favicon, and category icons are a custom **retro-futuristic TRON** mark:
+neon corn cob nestled in a cyber husk/shell, plus a geometric path wordmark
+`bilkrnl` (no webfonts — GitHub/offline safe).
+
+- Generator: [`docs/diagrams/brand_tron_corn.py`](diagrams/brand_tron_corn.py)
+- Emits: `docs/assets/logo.{svg,png}`, `docs/assets/icon.{svg,png}`,
+  `assets/logo.{svg,png}`, `docs/assets/icons/icon-*.{svg,png}`
+- Rasterized with ImageMagick (`magick` / `convert`)
+
 ## Primary: diagrams-as-code
 
-All architecture / workflow figures under `docs/assets/examples/` are produced by
+Architecture / workflow figures under `docs/assets/examples/` are produced by
 **[bsommers/diagrams-as-code](https://github.com/bsommers/diagrams-as-code)** (Apache-2.0).
 
 - Source scripts: [`docs/diagrams/`](diagrams/)

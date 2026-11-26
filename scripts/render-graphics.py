@@ -57,9 +57,9 @@ def main() -> int:
     py = ensure_venv()
     # Run renderer body inside the docs venv so imports resolve.
     body = r"""
-import shutil
 from pathlib import Path
-from docs.diagrams import architecture, blast_chamber, verify_tiers, cap_ratchet, logo_banner
+from docs.diagrams import architecture, blast_chamber, verify_tiers, cap_ratchet
+from docs.diagrams.brand_tron_corn import render_brand
 
 ROOT = Path(%r)
 EXAMPLES = ROOT / "docs" / "assets" / "examples"
@@ -75,34 +75,11 @@ architecture.render(EXAMPLES, "architecture")
 blast_chamber.render(EXAMPLES, "blast-chamber")
 verify_tiers.render(EXAMPLES, "verify-tiers")
 cap_ratchet.render(EXAMPLES, "cap-ratchet")
-logo_banner.render(ASSETS, "logo")
 
-# Square icon + root assets logo: reuse banner SVG scaled via copy (Pages favicon).
-# Also emit a compact icon diagram.
-from diagrams_as_code import Diagram, Shape
-from diagrams_as_code.output import render_all
+# TRON neon techno-corn brand (custom SVG; not diagrams-as-code shapes)
+render_brand(ASSETS, ROOT_ASSETS, ICONS)
 
-def icon_diagram():
-    with Diagram("bilkrnl", theme="cyber_slate") as diag:
-        diag.add(Shape("mark", "bilkrnl", icon="shield"))
-    return diag
-
-render_all(icon_diagram(), ASSETS, "icon", formats=("svg", "png"))
-shutil.copyfile(ASSETS / "icon.svg", ROOT_ASSETS / "logo.svg")
-shutil.copyfile(ASSETS / "icon.png", ROOT_ASSETS / "logo.png")
-
-# Category badges (small diagrams)
-for name, icon, label in [
-    ("icon-isa", "chip", "ISA"),
-    ("icon-enclave", "lock", "ENC"),
-    ("icon-chamber", "shield", "BLST"),
-    ("icon-uefi", "container", "UEFI"),
-]:
-    with Diagram(label, theme="cyber_slate") as diag:
-        diag.add(Shape(name, label, icon=icon))
-    render_all(diag, ICONS, name, formats=("svg", "png"))
-
-print("render-graphics: diagrams-as-code figures written under docs/assets/")
+print("render-graphics: diagrams-as-code figures + TRON corn brand written under docs/assets/")
 """ % (str(ROOT),)
     subprocess.check_call([str(py), "-c", body], cwd=ROOT)
 
