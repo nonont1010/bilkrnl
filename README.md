@@ -141,4 +141,4 @@ With [`bil`](https://github.com/bsommers/bil) on `PATH` (or `BIL_BIN`):
 
 ## License
 
-MIT — see package metadata in workspace `Cargo.toml`.
+[GPL-3.0-or-later](LICENSE) — strong copyleft: distribute modifications (and larger works based on this code) under the same terms.

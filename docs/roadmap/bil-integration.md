@@ -76,7 +76,7 @@ Encode `RatifySpec` as bil axioms; prove Reject paths for wrong exit / over-budg
 
 ## License note
 
-bil is **Apache-2.0**; bilkrnl workspace is **MIT**. Depending on bil as a **path/git host tool** or vendoring Apache-licensed specs is fine; keep NOTICE if shipping bil sources. Prefer **subprocess CLI** over Cargo dep inside `bilkrnl-core`.
+bil is **Apache-2.0**; bilkrnl workspace is **GPL-3.0-or-later**. Depending on bil as a **path/git host tool** or vendoring Apache-licensed specs is fine (Apache-2.0 is GPLv3-compatible); keep NOTICE if shipping bil sources. Prefer **subprocess CLI** over Cargo dep inside `bilkrnl-core` so the host tool stays out of the UEFI TCB and linking questions stay simple.
 
 ## Commands
 

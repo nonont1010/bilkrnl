@@ -10,7 +10,7 @@ default-members = ["bilkrnl-core", "tests", "tools/bil1asm"]
 
 [workspace.package]
 edition = "2021"
-license = "MIT"
+license = "GPL-3.0-or-later"
 version = "0.1.0"
 
 [profile.release]

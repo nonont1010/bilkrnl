@@ -1,12 +1,12 @@
 ---
-status: DONE — TC-16 host ratify-gate on main; verify ALL GREEN
+status: DONE — TC-16 + GPL-3.0-or-later on main; verify ALL GREEN
 next: optional bil witnesses / tighter Rust↔bil refinement; then B3.2 only if wanted; 1C last
 depends: []
 ---
 
 # Checkpoint — bilkrnl — 2026-11-25
 
-**Status:** COMPLETE for host ratify-gate (TC-16). Safe to `/compact`.
+**Status:** COMPLETE for host ratify-gate (TC-16) and GPL relicensing. Safe to `/compact`.
 
 ## Goal (user words)
 
@@ -28,11 +28,13 @@ Hardened UEFI aarch64 bilkrnl; SoftISA enclaves; blast chamber; a workload whose
 - bil host-side only; never in UEFI TCB.
 - Policy gate weakens to **Compute** (not None) — Halt needs Compute.
 - Skip logo polish / 1C for now.
+- License: **GPL-3.0-or-later** (strong copyleft; not MIT/Apache/LGPL).
+- Multi-account `gh`: do **not** `gh auth switch`; use `GH_TOKEN="$(gh auth token --user nonont1010)"` for this repo so `bsommers` agents keep the global active account.
 - Next: optional bil witnesses → B3.2 only if wanted → 1C last.
 
 ## Working-tree state
 
-- Branch: `main` (TC-16 + docs). No secrets. Docs venv: `.venv-docs`. bil: `/tmp/bil-clone/target/release/bil`.
+- Branch: `main` == `origin/main`. No secrets. Docs venv: `.venv-docs`. bil: `/tmp/bil-clone/target/release/bil`.
 
 ## Next steps (exact)
 
