@@ -1,0 +1,2 @@
+# Docs / graphics toolchain (install into .venv-docs via scripts/render-graphics.py)
+diagrams-as-code @ git+https://github.com/bsommers/diagrams-as-code.git

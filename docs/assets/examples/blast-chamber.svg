@@ -1,84 +1,154 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 420" width="100%" height="auto" role="img">
-
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 814 673" width="814" height="673">
   <defs>
-    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#04070f" />
-      <stop offset="50%" stop-color="#081022" />
-      <stop offset="100%" stop-color="#040814" />
-    </linearGradient>
-    <radialGradient id="core-glow" cx="50%" cy="45%" r="55%">
-      <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.16" />
-      <stop offset="60%" stop-color="#0284c7" stop-opacity="0.05" />
-      <stop offset="100%" stop-color="#050811" stop-opacity="0" />
-    </radialGradient>
-    <pattern id="minor-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-      <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#38bdf8" stroke-width="0.5" stroke-opacity="0.08" />
-    </pattern>
-    <pattern id="major-grid" width="96" height="96" patternUnits="userSpaceOnUse">
-      <rect width="96" height="96" fill="url(#minor-grid)" />
-      <path d="M 96 0 L 0 0 0 96" fill="none" stroke="#00e5ff" stroke-width="0.9" stroke-opacity="0.18" />
-      <circle cx="0" cy="0" r="1.5" fill="#00e5ff" fill-opacity="0.35" />
-    </pattern>
-    <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="3.5" result="blur" />
-      <feMerge>
-        <feMergeNode in="blur" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#00E5A3"/>
+    </marker>
+    <marker id="arrow-tail" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 10 1 L 0 5 L 10 9 z" fill="#00E5A3"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
     </filter>
   </defs>
-
-  <rect width="860" height="420" fill="url(#bg-grad)" />
-  <rect width="860" height="420" fill="url(#major-grid)" />
-  <rect width="860" height="420" fill="url(#core-glow)" />
-<text x="40" y="40" fill="#f0f6fc" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="700">Blast chamber pipeline (2C)</text>
-<text x="40" y="68" fill="#94a3b8" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14">Dispose then ratify — no trust that execution was safe</text>
-<rect x="40" y="120" width="140" height="90" rx="6" fill="#0b1428" fill-opacity="0.92" stroke="#38bdf8" stroke-width="1.5" filter="url(#neon-glow)"/>
-<path d="M 40 130 L 40 120 L 50 120" fill="none" stroke="#38bdf8" stroke-width="2"/>
-<path d="M 170 120 L 180 120 L 180 130" fill="none" stroke="#38bdf8" stroke-width="2"/>
-<path d="M 40 200 L 40 210 L 50 210" fill="none" stroke="#38bdf8" stroke-width="2"/>
-<path d="M 170 210 L 180 210 L 180 200" fill="none" stroke="#38bdf8" stroke-width="2"/>
-<text x="52" y="156" fill="#f0f6fc" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700">BIL1 image</text>
-<text x="52" y="180" fill="#5eead4" font-family="ui-monospace, 'Cascadia Code', 'Fira Code', Menlo, Consolas, monospace" font-size="11">BytecodeImage</text>
-<line x1="180" y1="165" x2="200" y2="165" stroke="#00e5ff" stroke-width="2"/>
-<rect x="200" y="120" width="140" height="90" rx="6" fill="#0b1428" fill-opacity="0.92" stroke="#00e5ff" stroke-width="1.5" filter="url(#neon-glow)"/>
-<path d="M 200 130 L 200 120 L 210 120" fill="none" stroke="#00e5ff" stroke-width="2"/>
-<path d="M 330 120 L 340 120 L 340 130" fill="none" stroke="#00e5ff" stroke-width="2"/>
-<path d="M 200 200 L 200 210 L 210 210" fill="none" stroke="#00e5ff" stroke-width="2"/>
-<path d="M 330 210 L 340 210 L 340 200" fill="none" stroke="#00e5ff" stroke-width="2"/>
-<text x="212" y="156" fill="#f0f6fc" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700">Load</text>
-<text x="212" y="180" fill="#5eead4" font-family="ui-monospace, 'Cascadia Code', 'Fira Code', Menlo, Consolas, monospace" font-size="11">enclave_load</text>
-<line x1="340" y1="165" x2="360" y2="165" stroke="#00e5ff" stroke-width="2"/>
-<rect x="360" y="120" width="140" height="90" rx="6" fill="#0b1428" fill-opacity="0.92" stroke="#00e5ff" stroke-width="1.5" filter="url(#neon-glow)"/>
-<path d="M 360 130 L 360 120 L 370 120" fill="none" stroke="#00e5ff" stroke-width="2"/>
-<path d="M 490 120 L 500 120 L 500 130" fill="none" stroke="#00e5ff" stroke-width="2"/>
-<path d="M 360 200 L 360 210 L 370 210" fill="none" stroke="#00e5ff" stroke-width="2"/>
-<path d="M 490 210 L 500 210 L 500 200" fill="none" stroke="#00e5ff" stroke-width="2"/>
-<text x="372" y="156" fill="#f0f6fc" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700">Run SoftISA</text>
-<text x="372" y="180" fill="#5eead4" font-family="ui-monospace, 'Cascadia Code', 'Fira Code', Menlo, Consolas, monospace" font-size="11">Vm::step/run</text>
-<line x1="500" y1="165" x2="520" y2="165" stroke="#00e5ff" stroke-width="2"/>
-<rect x="520" y="120" width="140" height="90" rx="6" fill="#0b1428" fill-opacity="0.92" stroke="#ffb800" stroke-width="1.5" filter="url(#neon-glow)"/>
-<path d="M 520 130 L 520 120 L 530 120" fill="none" stroke="#ffb800" stroke-width="2"/>
-<path d="M 650 120 L 660 120 L 660 130" fill="none" stroke="#ffb800" stroke-width="2"/>
-<path d="M 520 200 L 520 210 L 530 210" fill="none" stroke="#ffb800" stroke-width="2"/>
-<path d="M 650 210 L 660 210 L 660 200" fill="none" stroke="#ffb800" stroke-width="2"/>
-<text x="532" y="156" fill="#f0f6fc" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700">Dispose</text>
-<text x="532" y="180" fill="#5eead4" font-family="ui-monospace, 'Cascadia Code', 'Fira Code', Menlo, Consolas, monospace" font-size="11">zeroize mem</text>
-<line x1="660" y1="165" x2="680" y2="165" stroke="#00e5ff" stroke-width="2"/>
-<rect x="680" y="120" width="140" height="90" rx="6" fill="#0b1428" fill-opacity="0.92" stroke="#00ff9d" stroke-width="1.5" filter="url(#neon-glow)"/>
-<path d="M 680 130 L 680 120 L 690 120" fill="none" stroke="#00ff9d" stroke-width="2"/>
-<path d="M 810 120 L 820 120 L 820 130" fill="none" stroke="#00ff9d" stroke-width="2"/>
-<path d="M 680 200 L 680 210 L 690 210" fill="none" stroke="#00ff9d" stroke-width="2"/>
-<path d="M 810 210 L 820 210 L 820 200" fill="none" stroke="#00ff9d" stroke-width="2"/>
-<text x="692" y="156" fill="#f0f6fc" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700">Ratify</text>
-<text x="692" y="180" fill="#5eead4" font-family="ui-monospace, 'Cascadia Code', 'Fira Code', Menlo, Consolas, monospace" font-size="11">chamber_ratify</text>
-<rect x="40" y="260" width="780" height="120" rx="6" fill="#0b1428" fill-opacity="0.92" stroke="#00e5ff" stroke-width="1.5" filter="url(#neon-glow)"/>
-<path d="M 40 272 L 40 260 L 52 260" fill="none" stroke="#00e5ff" stroke-width="2"/>
-<path d="M 808 260 L 820 260 L 820 272" fill="none" stroke="#00e5ff" stroke-width="2"/>
-<path d="M 40 368 L 40 380 L 52 380" fill="none" stroke="#00e5ff" stroke-width="2"/>
-<path d="M 808 380 L 820 380 L 820 368" fill="none" stroke="#00e5ff" stroke-width="2"/>
-<text x="56" y="288" fill="#f0f6fc" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700">Serial markers (QEMU)</text>
-<text x="56" y="320" fill="#5eead4" font-family="ui-monospace, 'Cascadia Code', 'Fira Code', Menlo, Consolas, monospace" font-size="13">bilkrnl: ready → blast: done → chamber: RATIFIED &lt;hex64&gt; → cli: RATIFIED &lt;same&gt; → bilkrnl: halt</text>
-<text x="56" y="350" fill="#94a3b8" font-family="ui-monospace, 'Cascadia Code', 'Fira Code', Menlo, Consolas, monospace" font-size="12">TC-01 e2e · TC-02 serial parity · TC-14 zeroization</text>
+  <rect width="100%" height="100%" fill="#181B20"/>
+  <g id="polyline_1">
+    <path d="M 175.69 84 L 175.69 447" fill="none" stroke="#00E5A3" stroke-width="1" stroke-dasharray="5,4" stroke-linejoin="round" />
+  </g>
+  <g id="polyline_2">
+    <path d="M 175.69 472.75 L 175.69 509.75" fill="none" stroke="#00E5A3" stroke-width="1" stroke-dasharray="5,4" stroke-linejoin="round" />
+  </g>
+  <g id="polyline_3">
+    <path d="M 175.69 529.5 L 175.69 585.5" fill="none" stroke="#00E5A3" stroke-width="1" stroke-dasharray="5,4" stroke-linejoin="round" />
+  </g>
+  <g id="polyline_4">
+    <path d="M 328.87 84 L 328.87 414" fill="none" stroke="#00E5A3" stroke-width="1" stroke-dasharray="5,4" stroke-linejoin="round" />
+  </g>
+  <g id="polyline_5">
+    <path d="M 328.87 435 L 328.87 476.75" fill="none" stroke="#00E5A3" stroke-width="1" stroke-dasharray="5,4" stroke-linejoin="round" />
+  </g>
+  <g id="polyline_6">
+    <path d="M 328.87 497.75 L 328.87 585.5" fill="none" stroke="#00E5A3" stroke-width="1" stroke-dasharray="5,4" stroke-linejoin="round" />
+  </g>
+  <g id="polyline_7">
+    <path d="M 518.59 84 L 518.59 585.5" fill="none" stroke="#00E5A3" stroke-width="1" stroke-dasharray="5,4" stroke-linejoin="round" />
+  </g>
+  <g id="polyline_8">
+    <path d="M 654.05 84 L 654.05 585.5" fill="none" stroke="#00E5A3" stroke-width="1" stroke-dasharray="5,4" stroke-linejoin="round" />
+  </g>
+  <g id="polyline_9">
+    <path d="M 163.69 450 L 671.05 450 L 671.05 565.5 L 163.69 565.5 L 163.69 450" fill="none" stroke="#00E5A3" stroke-width="1.2" stroke-linejoin="round" />
+  </g>
+  <g id="polyline_11">
+    <path d="M 163.69 508.75 L 671.05 508.75" fill="none" stroke="#00E5A3" stroke-width="1" stroke-dasharray="6,4" stroke-linejoin="round" />
+  </g>
+  <g id="polygon_12">
+    <path d="M 341.87 341 L 487.59 341 L 496.59 350 L 496.59 370 L 341.87 370 Z" fill="#2B313B" stroke="#00E5A3" stroke-width="1" stroke-linejoin="round" />
+  </g>
+  <g id="polyline_13">
+    <path d="M 487.59 341 L 487.59 350 L 496.59 350" fill="none" stroke="#00E5A3" stroke-width="1" stroke-linejoin="round" />
+  </g>
+  <g id="polygon_14">
+    <path d="M 323.87 129 L 333.87 129 L 333.87 162 L 323.87 162 Z" fill="#2B313B" stroke="#00E5A3" stroke-width="1.2" stroke-linejoin="round" />
+  </g>
+  <g id="polygon_15">
+    <path d="M 323.87 195 L 333.87 195 L 333.87 294 L 323.87 294 Z" fill="#2B313B" stroke="#00E5A3" stroke-width="1.2" stroke-linejoin="round" />
+  </g>
+  <g id="polygon_16">
+    <path d="M 323.87 327 L 333.87 327 L 333.87 403 L 323.87 403 Z" fill="#2B313B" stroke="#00E5A3" stroke-width="1.2" stroke-linejoin="round" />
+  </g>
+  <g id="polygon_17">
+    <path d="M 513.59 228 L 523.59 228 L 523.59 261 L 513.59 261 Z" fill="#2B313B" stroke="#00E5A3" stroke-width="1.2" stroke-linejoin="round" />
+  </g>
+  <g id="polygon_18">
+    <path d="M 649.05 436 L 659.05 436 L 659.05 498.75 L 649.05 498.75 Z" fill="#2B313B" stroke="#00E5A3" stroke-width="1.2" stroke-linejoin="round" />
+  </g>
+  <g id="polygon_10">
+    <path d="M 163.69 450 L 194.53 450 L 194.53 463.75 L 188.53 469.75 L 163.69 469.75 Z" fill="#2B313B" stroke="#00E5A3" stroke-width="1.2" stroke-linejoin="round" />
+  </g>
+  <path d="M 175.69 129 L 317.39 129" fill="none" stroke="#00E5A3" stroke-width="1.4" />
+  <path d="M 323.87 129 L 315.77 132.24 L 315.77 125.76 Z" fill="#00E5A3" />
+  <path d="M 323.87 162 L 175.69 162" fill="none" stroke="#00E5A3" stroke-width="1.4" stroke-dasharray="5,5" />
+  <path d="M 183.79 158.76 L 175.69 162 L 183.79 165.24" fill="none" stroke="#00E5A3" stroke-width="1.4" stroke-linejoin="miter" stroke-linecap="round" />
+  <path d="M 175.69 195 L 317.39 195" fill="none" stroke="#00E5A3" stroke-width="1.4" />
+  <path d="M 323.87 195 L 315.77 198.24 L 315.77 191.76 Z" fill="#00E5A3" />
+  <path d="M 333.87 228 L 507.11 228" fill="none" stroke="#00E5A3" stroke-width="1.4" />
+  <path d="M 513.59 228 L 505.49 231.24 L 505.49 224.76 Z" fill="#00E5A3" />
+  <path d="M 513.59 261 L 333.87 261" fill="none" stroke="#00E5A3" stroke-width="1.4" stroke-dasharray="5,5" />
+  <path d="M 341.97 257.76 L 333.87 261 L 341.97 264.24" fill="none" stroke="#00E5A3" stroke-width="1.4" stroke-linejoin="miter" stroke-linecap="round" />
+  <path d="M 323.87 294 L 175.69 294" fill="none" stroke="#00E5A3" stroke-width="1.4" stroke-dasharray="5,5" />
+  <path d="M 183.79 290.76 L 175.69 294 L 183.79 297.24" fill="none" stroke="#00E5A3" stroke-width="1.4" stroke-linejoin="miter" stroke-linecap="round" />
+  <path d="M 175.69 327 L 317.39 327" fill="none" stroke="#00E5A3" stroke-width="1.4" />
+  <path d="M 323.87 327 L 315.77 330.24 L 315.77 323.76 Z" fill="#00E5A3" />
+  <path d="M 323.87 403 L 175.69 403" fill="none" stroke="#00E5A3" stroke-width="1.4" stroke-dasharray="5,5" />
+  <path d="M 183.79 399.76 L 175.69 403 L 183.79 406.24" fill="none" stroke="#00E5A3" stroke-width="1.4" stroke-linejoin="miter" stroke-linecap="round" />
+  <path d="M 175.69 436 L 642.57 436" fill="none" stroke="#00E5A3" stroke-width="1.4" />
+  <path d="M 649.05 436 L 640.95 439.24 L 640.95 432.76 Z" fill="#00E5A3" />
+  <path d="M 649.05 498.75 L 175.69 498.75" fill="none" stroke="#00E5A3" stroke-width="1.4" stroke-dasharray="5,5" />
+  <path d="M 183.79 495.51 L 175.69 498.75 L 183.79 501.99" fill="none" stroke="#00E5A3" stroke-width="1.4" stroke-linejoin="miter" stroke-linecap="round" />
+  <path d="M 654.05 555.5 L 175.69 555.5" fill="none" stroke="#00E5A3" stroke-width="1.4" stroke-dasharray="5,5" />
+  <path d="M 183.79 552.26 L 175.69 555.5 L 183.79 558.74" fill="none" stroke="#00E5A3" stroke-width="1.4" stroke-linejoin="miter" stroke-linecap="round" />
+  <g id="shape_19" filter="url(#shadow)">
+    <rect x="101.36" y="40" width="148.66" height="44" rx="6" fill="#2B313B" stroke="#00E5A3" stroke-width="2" />
+    <text x="175.69" y="66.47" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="500" text-anchor="middle">Serial CLI / harness</text>
+  </g>
+  <g id="shape_20" filter="url(#shadow)">
+    <rect x="278.02" y="40" width="101.7" height="44" rx="6" fill="#2B313B" stroke="#00E5A3" stroke-width="2" />
+    <text x="328.87" y="66.47" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="500" text-anchor="middle">EnclaveSlot</text>
+  </g>
+  <g id="shape_21" filter="url(#shadow)">
+    <rect x="469.2" y="40" width="98.78" height="44" rx="6" fill="#2B313B" stroke="#00E5A3" stroke-width="2" />
+    <text x="518.59" y="66.47" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="500" text-anchor="middle">SoftISA Vm</text>
+  </g>
+  <g id="shape_22" filter="url(#shadow)">
+    <rect x="595.98" y="40" width="116.14" height="44" rx="6" fill="#2B313B" stroke="#00E5A3" stroke-width="2" />
+    <text x="654.05" y="66.47" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="500" text-anchor="middle">BlastChamber</text>
+  </g>
+  <g id="text_45">
+    <text x="249.78" y="121.63" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" text-anchor="middle">1. enclave_load(BIL1)</text>
+  </g>
+  <g id="text_46">
+    <text x="249.78" y="154.63" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" text-anchor="middle">2. EnclaveId</text>
+  </g>
+  <g id="text_47">
+    <text x="249.78" y="187.63" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" text-anchor="middle">3. enclave_run(id)</text>
+  </g>
+  <g id="text_48">
+    <text x="423.73" y="220.63" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" text-anchor="middle">4. Vm::run(budget)</text>
+  </g>
+  <g id="text_49">
+    <text x="423.73" y="253.63" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" text-anchor="middle">5. EnclaveResult</text>
+  </g>
+  <g id="text_50">
+    <text x="249.78" y="286.63" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" text-anchor="middle">6. result</text>
+  </g>
+  <g id="text_51">
+    <text x="249.77" y="319.63" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" text-anchor="middle">7. enclave_dispose(id)</text>
+  </g>
+  <g id="text_52">
+    <text x="348.87" y="359.63" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" text-anchor="start">zeroize linear RAM + out</text>
+  </g>
+  <g id="text_53">
+    <text x="249.78" y="395.63" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" text-anchor="middle">8. ok</text>
+  </g>
+  <g id="text_54">
+    <text x="412.37" y="428.63" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" text-anchor="middle">9. chamber_ratify(result, RatifySpec)</text>
+  </g>
+  <g id="text_55">
+    <text x="412.37" y="491.38" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" text-anchor="middle">10. RATIFIED + artifact_digest</text>
+  </g>
+  <g id="text_56">
+    <text x="414.87" y="548.13" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" text-anchor="middle">11. Reject { reason }</text>
+  </g>
+  <g id="text_57">
+    <text x="169.69" y="463.66" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" text-anchor="start">alt</text>
+  </g>
+  <g id="text_58">
+    <text x="202.53" y="463.66" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" text-anchor="start">[predicates hold]</text>
+  </g>
+  <g id="text_59">
+    <text x="171.69" y="523.41" fill="#F0F3F6" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" text-anchor="start">[exit / budget / out / cap fail]</text>
+  </g>
+  <g id="caption_60">
+    <text x="60" y="628.03" xml:space="preserve" fill="#F0F3F6" font-family="'STIX Two Text', 'Times New Roman', Times, 'Liberation Serif', serif" font-size="15" textLength="693.48" lengthAdjust="spacingAndGlyphs">SERIAL MARKERS: BILKRNL: READY → CHAMBER: RATIFIED → CLI: RATIFIED → BILKRNL: HALT</text>
+  </g>
 </svg>

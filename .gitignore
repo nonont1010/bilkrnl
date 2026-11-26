@@ -1,3 +1,4 @@
 /target/
+.venv-docs/
 **/AAVMF_VARS*.fd
 *.pdb

@@ -14,10 +14,12 @@ This is not a micro-VM guest (Firecracker isolates a guest kernel; you still tru
 
 ## Visual Architecture & Workflow Showcase
 
+Figures are generated with [**diagrams-as-code**](https://github.com/bsommers/diagrams-as-code) (`cyber_slate` theme). See [`docs/TOOLING.md`](docs/TOOLING.md). For interactive web charts later, [**lumagrid**](https://github.com/bsommers/lumagrid) is available.
+
 | Graphic | What it shows |
 |---------|----------------|
 | ![architecture](docs/assets/examples/architecture.svg) | Host → UEFI → TCB → SoftISA / Enclave / Chamber |
-| ![blast chamber](docs/assets/examples/blast-chamber.svg) | Load → Run → Dispose → Ratify (2C) with serial markers |
+| ![blast chamber](docs/assets/examples/blast-chamber.svg) | Load → Run → Dispose → Ratify (2C) sequence |
 | ![verify tiers](docs/assets/examples/verify-tiers.svg) | `scripts/verify.sh` layered gates including docs refresh |
 | ![cap ratchet](docs/assets/examples/cap-ratchet.svg) | Capability poset: weaken-only ratchet (TC-09) |
 

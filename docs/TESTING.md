@@ -36,7 +36,7 @@
 
 ## Docs asset gate
 
-`scripts/render-graphics.py` parses every emitted SVG with `xml.etree.ElementTree` and checks PNG magic `\x89PNG\r\n\x1a\n`. Wired at the end of verify (full and `--quick`).
+`scripts/render-graphics.py` provisions `.venv-docs` with [diagrams-as-code](https://github.com/bsommers/diagrams-as-code), renders `docs/diagrams/*.py`, then checks SVG well-formedness and PNG magic. Wired at the end of verify (full and `--quick`). Tooling notes (including lumagrid): [`TOOLING.md`](TOOLING.md).
 
 ## bil formal specs (optional)
 

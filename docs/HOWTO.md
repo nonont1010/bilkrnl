@@ -73,7 +73,12 @@ Inspect `EnclaveResult.{exit,cycles,out,out_digest}` before ratify.
 
 ## Regenerate documentation graphics
 
+Figures live in `docs/diagrams/` and are rendered with
+[diagrams-as-code](https://github.com/bsommers/diagrams-as-code) (`cyber_slate`).
+
 ```bash
-python3 scripts/render-graphics.py
-# also runs automatically at end of scripts/verify.sh (full / --quick after kernel build)
+python3 scripts/render-graphics.py          # provisions .venv-docs if needed
+./scripts/verify.sh --only docs             # same, via verify gate
 ```
+
+For interactive web charts later, [lumagrid](https://github.com/bsommers/lumagrid) is allowed — see [`TOOLING.md`](TOOLING.md).
