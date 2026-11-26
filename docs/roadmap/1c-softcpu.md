@@ -2,7 +2,7 @@
 
 **Status:** Not in V1 verify gates. Interpreter path (1A) is authoritative until this lands.
 
-**Spike notes (design only, not implemented):** [`softcpu/README.md`](../../softcpu/README.md), [`softcpu/DEVICE.md`](../../softcpu/DEVICE.md), and [`softcpu/PARITY.md`](../../softcpu/PARITY.md) sketch the QEMU device, the MMIO and zeroize sequence, and the 1A-vs-1C digest fixture plan. Nothing under `softcpu/` is code. `scripts/verify.sh` still only checks that this roadmap file exists.
+**Spike notes (design only, not implemented):** [`softcpu/README.md`](../../softcpu/README.md), [`softcpu/DEVICE.md`](../../softcpu/DEVICE.md), [`softcpu/PARITY.md`](../../softcpu/PARITY.md), [`softcpu/qemu-device.md`](../../softcpu/qemu-device.md), and the non-compiled sketch [`softcpu/include/bil_softcpu.h`](../../softcpu/include/bil_softcpu.h). `scripts/verify.sh` still only checks that this roadmap file exists.
 
 ## Goal
 
@@ -25,7 +25,7 @@ Replace the in-kernel SoftISA interpreter body with a QEMU device model (and lat
 ## Suggested layout (future)
 
 ```
-softcpu/           # design notes only (README.md, DEVICE.md, PARITY.md) — no device code
+softcpu/           # notes + include/bil_softcpu.h (not compiled) — no device binary
 rtl/               # optional HDL — out of tree OK
 docs/roadmap/1c-softcpu.md  # this file
 ```

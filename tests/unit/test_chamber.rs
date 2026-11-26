@@ -98,3 +98,47 @@ fn tc13_cycles_over_reject() {
         }
     ));
 }
+
+#[test]
+fn tc13_out_too_large_reject() {
+    let r = ok_result();
+    assert!(r.out.len() > 1);
+    let spec = RatifySpec {
+        allowed_exits: &[ExitReason::Halt],
+        max_cycles: 1_000_000,
+        max_out_bytes: 1,
+        required_caps_ceiling: Cap::IoOutBounded,
+        out_predicate: OutPred::Any,
+    };
+    match chamber_ratify(&r, &spec) {
+        ChamberDecision::Reject {
+            reason: ChamberReject::OutTooLarge { len, max },
+        } => {
+            assert_eq!(len as usize, r.out.len());
+            assert_eq!(max, 1);
+        }
+        other => panic!("{:?}", other),
+    }
+}
+
+#[test]
+fn tc13_cap_ceiling_reject() {
+    let r = ok_result();
+    assert_eq!(r.caps_at_exit, Cap::IoOutBounded);
+    let spec = RatifySpec {
+        allowed_exits: &[ExitReason::Halt],
+        max_cycles: 1_000_000,
+        max_out_bytes: 1024,
+        required_caps_ceiling: Cap::Compute,
+        out_predicate: OutPred::Any,
+    };
+    match chamber_ratify(&r, &spec) {
+        ChamberDecision::Reject {
+            reason: ChamberReject::CapCeilingViolated { at_exit, ceiling },
+        } => {
+            assert_eq!(at_exit, Cap::IoOutBounded);
+            assert_eq!(ceiling, Cap::Compute);
+        }
+        other => panic!("{:?}", other),
+    }
+}

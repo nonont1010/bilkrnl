@@ -44,24 +44,35 @@ Prove alignment with Rust unit tests TC-03..08.
 **B1 checklist:**
 
 - [x] Land [`specs/bil/softisa_step.bil`](../../specs/bil/softisa_step.bil) (bounded abstract `system`: cycles / out_len / caps / exit / `host_touched` ghost; invariants mapped to TC-03, 04, 07, 08, 09 in the header)
-- [x] `bil check` + `bil model-check` pass (70 states)
+- [x] `bil check` + `bil model-check` pass (70 states pre-refine; 439 after refine)
 - [x] Wire `softisa_step.bil` into `scripts/verify.sh` `run_bil_specs`
-- [ ] Refine abstraction (pc/acc/mem, Jmp/Jz PcOob, mem-page budget) beyond the bounded model
+- [x] Refine abstraction (pc 0..3, acc 0/1, `pages_touched` vs `max_mem_pages=1`; fetch/Jmp/Jz → `FaultPcOob`, Load/Store past page 0 → `FaultMemOob`; TC-05/TC-07 in header)
 
 ### Phase B2 — Chamber FOL
 
 Encode `RatifySpec` as bil axioms; prove Reject paths for wrong exit / over-budget / cap ceiling (TC-13).
 
 - [x] [`specs/bil/chamber_ratify.bil`](../../specs/bil/chamber_ratify.bil): one pure `fn` + `ensures` per `ChamberReject` (ExitNotAllowed → CyclesOverBudget → OutTooLarge → CapCeilingViolated → OutPredicateFailed), `chamber_ratify` check order, abstract `artifact_digest` (Ratified only)
-- [x] TC-13 witnesses: `tc13_ratify_ok`, `tc13_wrong_out_reject`, `tc13_wrong_exit_reject`, `tc13_cycles_over_reject`; axiom witnesses for OutTooLarge / CapCeilingViolated (no Rust unit test yet)
+- [x] TC-13 witnesses: `tc13_ratify_ok`, `tc13_wrong_out_reject`, `tc13_wrong_exit_reject`, `tc13_cycles_over_reject`; axiom witnesses for OutTooLarge / CapCeilingViolated
 - [x] `system RatifyChamber` (bounded adversarial inputs) model-checks reject ordering + digest-only-on-Ratified
 - [x] `bil check` + `bil verify --allow-bounded` (24/24 z3-proved) + `bil model-check` pass
 - [x] Add `chamber_ratify.bil` to the `bil-specs` gate in `scripts/verify.sh`
-- [ ] Rust unit tests for OutTooLarge / CapCeilingViolated
+- [x] Rust unit tests for OutTooLarge / CapCeilingViolated (`tc13_out_too_large_reject`, `tc13_cap_ceiling_reject`)
 
 ### Phase B3 — Lowering (stretch)
 
 `bil dump-ir` / LIR → assembler emitting `BIL1` images; digests must match SoftISA runs (paves road to 1C soft-CPU with shared specs).
+
+**Status: design only. Not implemented, not in V1 verify.** Full notes: [b3-lowering.md](b3-lowering.md). Host tool sketch: [`tools/bil1asm/README.md`](../../tools/bil1asm/README.md).
+
+- Only a small **BIL1 profile** of bil lowers: `u8`-bounded literals and variables, `x ± k`, `== 0` / `== k` guards, deterministic single-branch `do … od` with a `variant`, plus `bil1_out` / `bil1_weaken` intrinsics. Mul/Div/Mod, var+var arithmetic, calls, recursion, floats, strings, ADTs, quantifiers, and nondeterministic guards are rejected.
+- `bil dump-ir --level lir` (v0.8.1) prints signatures only. The usable input today is `bil vm --dump-bytecode`, which is Rust `Debug` text, so the first step is a hand-written profile IR.
+- Digest parity: lowered images must be byte-deterministic, run to the bil oracle's `out` on the 1A interpreter, and pass `chamber_ratify`. Their golden digests become extra 1C parity vectors. B3 adds no new digest definitions.
+- The same hard boundary applies: the tool is host-only, calls `bil` as a subprocess, and is never linked into `kernel` or `bilkrnl-core`.
+
+- [x] B3.0 design notes + reference image hex ([`tools/bil1asm/examples/ok.bil1.txt`](../../tools/bil1asm/examples/ok.bil1.txt))
+- [ ] B3.1 host assembler for profile IR reproducing `fixture_ok_program` byte-for-byte
+- [ ] B3.2–B3.4 lower bil stack bytecode, `bil verify` side conditions, golden vectors
 
 ## License note
 

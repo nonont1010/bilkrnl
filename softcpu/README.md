@@ -1,6 +1,8 @@
 # Milestone 1C — Soft-CPU Stub (`softcpu/`)
 
 > **Status:** Design notes only — **NOT IMPLEMENTED**. Explicitly out of V1 verify gates (`scripts/verify.sh`). No RTL and no QEMU fork live here; the 1A in-kernel software interpreter (`bilkrnl-core::isa::Vm`) remains authoritative.
+>
+> Sketches (also out of `scripts/verify.sh`): [`include/bil_softcpu.h`](./include/bil_softcpu.h) (C API, **not compiled**) and [`qemu-device.md`](./qemu-device.md) (how a future fork registers `-device bil-softcpu`). [`DEVICE.md`](./DEVICE.md) is the MMIO map. [`PARITY.md`](./PARITY.md) is the digest oracle.
 
 ## Purpose
 
@@ -18,7 +20,7 @@ Copied from [`docs/roadmap/1c-softcpu.md`](../docs/roadmap/1c-softcpu.md) — an
 
 ## Suggested QEMU `-device bil-softcpu` shape
 
-When 1C is wired into `scripts/run-qemu.sh` (future, opt-in), QEMU (`qemu-system-aarch64 -machine virt`) gains a sysbus/PCI-attached device without altering UEFI boot or enclave call sites:
+Registration, `virt` platform-bus glue, the ESP/kernel `BIL1` load path, and the interpreter fallback are in [`qemu-device.md`](./qemu-device.md). When 1C is wired into `scripts/run-qemu.sh` (future, opt-in, forked QEMU only), the board gains a sysbus device without altering UEFI boot or enclave call sites:
 
 ```text
 qemu-system-aarch64 \
@@ -43,4 +45,4 @@ Before 1C can graduate from stub to active backend:
 ## Explicitly out of V1 verify gates
 
 - **Not gated by `scripts/verify.sh`:** V1 verification checks only that the 1C roadmap note exists; it requires **no QEMU fork**, **no custom C/Rust device build**, and **no RTL/HDL toolchain**.
-- **No TCB expansion in V1:** This directory contains markdown design notes only and is never compiled or linked into `bilkrnl-core` or `bilkrnl`.
+- **No TCB expansion in V1:** Markdown notes plus `include/bil_softcpu.h`, which is a sketch and is never compiled or linked into `bilkrnl-core`, `bilkrnl`, or `scripts/verify.sh`. No Meson or CMake target in this repository builds it.

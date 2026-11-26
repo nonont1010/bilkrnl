@@ -1,0 +1,9 @@
+# BIL1 image for bilkrnl_core::isa::fixture_ok_program (reference only; not loaded by any test)
+# entry=0  code_len=10  caps=IoOutBounded(2)  budget: max_cycles=64 max_out_bytes=8 max_mem_pages=1
+# code_digest  (sha256 of code bytes 0x20..0x29) = 0fe5a198c3048319789344d79fba856c45e178446346f1417fca0eed7cacf015
+# image sha256 (all 42 bytes, informational, not a contract digest) = e6bc5b8715625ae8e95dfee2f6ca53c21d21114ce4c4b5c9c89570f31c3247c1
+#
+# offset    bytes
+00000000  42 49 4c 31 00 00 00 00 0a 00 00 00 02 00 00 00   # "BIL1" entry code_len caps rsvd
+00000010  40 00 00 00 00 00 00 00 08 00 00 00 01 00 00 00   # max_cycles max_out max_pages pad
+00000020  02 4f 09 02 4b 09 02 0a 09 00                     # ldi 'O' out ldi 'K' out ldi '\n' out halt

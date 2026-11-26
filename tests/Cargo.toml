@@ -55,3 +55,7 @@ path = "integration/test_zeroization.rs"
 [[test]]
 name = "test_e2e_harness"
 path = "system/test_e2e_harness.rs"
+
+[[test]]
+name = "test_digest_oracle"
+path = "parity/test_digest_oracle.rs"

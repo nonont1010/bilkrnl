@@ -28,7 +28,7 @@ build_kernel() {
 run_unit() {
   cargo test -p bilkrnl-tests --test test_cap_poset --test test_budget \
     --test test_outbuf --test test_linear_as --test test_isa_faults \
-    --test test_single_enclave --test test_chamber -q
+    --test test_single_enclave --test test_chamber --test test_digest_oracle -q
 }
 
 run_security() {

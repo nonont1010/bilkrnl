@@ -1,15 +1,24 @@
-// bilkrnl SoftISA step (host-side formal model) — roadmap Phase B1.
-// Abstracts bilkrnl-core::isa::Vm::step + budget::BudgetAccount::charge_cycle/charge_out
+// bilkrnl SoftISA step (host-side formal model) — roadmap Phase B1 (refined).
+// Abstracts bilkrnl-core::isa::Vm::step + budget::BudgetAccount::charge_cycle/charge_out/note_addr
 // + cap::CapPoset::weaken. Tooling: https://github.com/bsommers/bil
 //
 // Abstraction (bounded; NOT the 64 KiB memory):
-//   * pc / acc / mem are abstracted away (no pc/acc/mem state). Ops are nondeterministic
-//     transitions; mem OOB / PcOob are not modelled (covered by TC-05/TC-07 in Rust).
+//   * pc    : Int 0..pc_lim, pc_lim = 3 (3 code/mem cells). pc == pc_lim means "next fetch is
+//             past the end" -> read_u8 PcOob (isa.rs fetch bound check). Multi-byte ops are
+//             abstracted as pc := pc + 1. Jmp/Jz targets are abstracted to {in-range -> pc := 0,
+//             out-of-range -> FaultPcOob}. Pc after fault is not part of EnclaveResult
+//             (Rust may advance pc on fetch before a later bound check — unobservable).
+//   * acc   : Int 0..1 (zero / non-zero). LoadImm/Load pick either; Add/SubImm may flip
+//             the class (imm=0 or 1+1 can keep it); Jz branches on acc == 0.
+//   * mem   : ghost pages_touched 0..max_mem_pages with max_mem_pages = 1. Load/Store to page 0
+//             sets pages_touched := 1; touching page 1 would exceed the budget -> FaultMemOob
+//             (BudgetAccount::note_addr error mapped to MemOob; pages_touched is not bumped).
 //   * max_cycles = 3, max_out = 2 (small bounds so the state space is exhaustive).
 //   * Every non-terminal step first does charge_cycle: cycles := cycles + 1 (saturating
 //     is irrelevant at these bounds). If the *new* count > max_cycles the exit is
 //     BudgetExceeded (cycles == max_cycles + 1) and is NOT a fault — matches Rust.
-//   * Cap gate (caps < Compute -> MissingCap) runs after charge_cycle, before op decode.
+//   * Cap gate (caps < Compute -> MissingCap) runs after charge_cycle, before fetch/decode.
+//   * Fetch gate (pc == pc_lim -> PcOob) runs after the cap gate, before op decode.
 //
 // Run:
 //   bil check       specs/bil/softisa_step.bil
@@ -24,20 +33,32 @@
 //   TC-04 (out buffer 0 / max / max+1, tests/unit/test_outbuf.rs; also Out cap gate)
 //       OutWithinMax           out_len <= max_out (max+1 => FaultOutOverflow, no push)
 //       OutRequiresIoCap       out_len > 0 => last successful Out had caps == CapIoOut
-//   TC-07 (illegal op / fault typing, tests/unit/test_isa_faults.rs)
+//   TC-05 (linear memory / page budget, tests/unit/test_linear_as.rs -> FaultKind::MemOob)
+//       MemWithinMax           pages_touched <= max_mem_pages (page 1 is never mapped)
+//       PagesMonotonic         prev_pages <= pages_touched (touched pages never shrink)
+//       MemOobNoPush           FaultMemOob => pages_touched <= max_mem_pages (access rejected,
+//                              no page bumped beyond the budget)
+//       MemOobReachable        witness cell: MemOob exits are produced only by Load/Store to
+//                              the unmapped page (see transitions)
+//   TC-07 (illegal op / fault typing; PcOob, tests/unit/test_isa_faults.rs)
 //       FaultTyped             ExitFault <=> fault != FaultNone (budget/halt carry no fault)
 //       TerminalExitCycles     Halt/Fault exits happen only after a successful charge_cycle
+//       PcInRange              0 <= pc <= pc_lim (pc never leaves the abstract code window)
+//       PcOobFrozenPc          FaultPcOob => pc <= pc_lim (faulting fetch/jump never commits
+//                              an out-of-window pc); fetch-past-end and Jmp/Jz OOB both land here
+//       AccBool                acc is 0 or 1 (abstract zero / non-zero)
 //   TC-08 (no host escape, tests/security/test_no_host_escape.rs)
 //       HostNeverTouched       host_touched == false always (B1 ghost invariant)
-//       EscapeFaultsClosed     host-escape fault => out_len/caps unchanged vs. pre-state,
-//                              and host_touched stays false (never set true on 0xE0..=0xEF)
+//       EscapeFaultsClosed     host-escape fault => out_len/caps/acc/pages unchanged vs.
+//                              pre-state, and host_touched stays false (never set true on
+//                              0xE0..=0xEF)
 //   TC-09 (cap poset ratchet, tests/unit/test_cap_poset.rs)
 //       CapsOnlyWeaken         rank(caps) <= rank(prev_caps) and <= rank(caps_ceiling)
 //       (+ pure fn theorems weaken_* below, same as enclave_chamber.bil)
 
 type CapLevel = CapNone | CapCompute | CapIoOut
 type ExitKind = ExitNone | ExitHalt | ExitBudget | ExitFault
-type FaultKind = FaultNone | FaultMissingCap | FaultOutOverflow | FaultHostEscape | FaultIllegal
+type FaultKind = FaultNone | FaultMissingCap | FaultOutOverflow | FaultHostEscape | FaultIllegal | FaultPcOob | FaultMemOob
 
 // Ordinal of Cap: None=0 < Compute=1 < IoOutBounded=2 (cap.rs).
 fn rank(c: CapLevel) -> Int
@@ -58,9 +79,11 @@ fn can_weaken(from: CapLevel, to: CapLevel) -> Bool
   fi
 
 system SoftIsaStep {
-  // Budget constants (ResourceBudget { max_cycles, max_out_bytes, .. }).
+  // Budget constants (ResourceBudget { max_cycles, max_out_bytes, max_mem_pages }).
   state max_cycles: Int = 3
   state max_out: Int = 2
+  state max_mem_pages: Int = 1
+  state pc_lim: Int = 3
 
   // VM abstract state.
   state cycles: Int = 0
@@ -71,12 +94,18 @@ system SoftIsaStep {
   state caps_ceiling: CapLevel = CapIoOut
   state exit_kind: ExitKind = ExitNone
   state fault: FaultKind = FaultNone
+  state pc: Int = 0
+  state acc: Int = 0
+  state pages_touched: Int = 0
+  state prev_pages: Int = 0
 
   // Ghost / witness state.
   state host_touched: Bool = false          // B1: must stay false forever
   state last_out_caps: CapLevel = CapNone   // caps at most recent successful Out
   state esc_pre_out: Int = 0                // snapshot at host-escape fault
   state esc_pre_caps: CapLevel = CapIoOut
+  state esc_pre_acc: Int = 0
+  state esc_pre_pages: Int = 0
 
   // TC-03
   invariant BudgetExitExact: exit_kind == ExitBudget => cycles == max_cycles + 1
@@ -86,70 +115,147 @@ system SoftIsaStep {
   // TC-04
   invariant OutWithinMax: out_len >= 0 && out_len <= max_out
   invariant OutRequiresIoCap: out_len > 0 => last_out_caps == CapIoOut
+  // TC-05
+  invariant MemWithinMax: pages_touched >= 0 && pages_touched <= max_mem_pages
+  invariant PagesMonotonic: prev_pages <= pages_touched && pages_touched <= prev_pages + 1
+  invariant MemOobNoPush: fault == FaultMemOob => pages_touched <= max_mem_pages
   // TC-07
   invariant FaultTyped: (exit_kind == ExitFault => fault != FaultNone) && (exit_kind != ExitFault => fault == FaultNone)
   invariant TerminalExitCycles: (exit_kind == ExitHalt || exit_kind == ExitFault) => cycles >= 1
+  invariant PcInRange: pc >= 0 && pc <= pc_lim
+  invariant PcOobFrozenPc: fault == FaultPcOob => pc <= pc_lim
+  invariant AccBool: acc >= 0 && acc <= 1
   // TC-08
   invariant HostNeverTouched: host_touched == false
-  invariant EscapeFaultsClosed: fault == FaultHostEscape => (esc_pre_out == out_len && esc_pre_caps == caps && host_touched == false)
+  invariant EscapeFaultsClosed: fault == FaultHostEscape => (esc_pre_out == out_len && esc_pre_caps == caps && esc_pre_acc == acc && esc_pre_pages == pages_touched && host_touched == false)
   // TC-09
   invariant CapsOnlyWeaken: rank(caps) <= rank(prev_caps) && rank(caps) <= rank(caps_ceiling)
 
   transition
   // ---- charge_cycle exceeds max: BudgetExceeded exit (not a fault) ----
     exit_kind == ExitNone && cycles == max_cycles ->
-      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, exit_kind := ExitBudget
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      exit_kind := ExitBudget
 
-  // ---- Missing Compute cap gate (after charge) ----
+  // ---- Missing Compute cap gate (after charge, before fetch) ----
   [] exit_kind == ExitNone && cycles < max_cycles && caps == CapNone ->
-      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps,
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
       exit_kind := ExitFault, fault := FaultMissingCap
 
-  // ---- Halt (00) ----
-  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone ->
-      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, exit_kind := ExitHalt
+  // ---- Fetch past end of code/mem window -> PcOob (read_u8); pc unchanged ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc == pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      exit_kind := ExitFault, fault := FaultPcOob
 
-  // ---- Nop (01) / LoadImm / Load / Store / AddImm / SubImm / Jmp / Jz (abstract: no-op) ----
-  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone ->
-      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps
+  // ---- Halt (00) ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := pc + 1, exit_kind := ExitHalt
+
+  // ---- Nop (01): fall through ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := pc + 1
+
+  // ---- LoadImm (acc := 0 | 1, abstract zero/non-zero) ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := pc + 1, acc := 0
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := pc + 1, acc := 1
+
+  // ---- AddImm / SubImm (abstract: toggles zero/non-zero) ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim && acc == 0 ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := pc + 1, acc := 1
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim && acc == 1 ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := pc + 1, acc := 0
+
+  // ---- Load (02) page 0: maps page 0, acc := 0 | 1 ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := pc + 1, pages_touched := 1, acc := 0
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := pc + 1, pages_touched := 1, acc := 1
+
+  // ---- Store (03) page 0: maps page 0, acc unchanged ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := pc + 1, pages_touched := 1
+
+  // ---- Load/Store past the mapped page (page 1 > max_mem_pages) -> MemOob; no page bump ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      exit_kind := ExitFault, fault := FaultMemOob
+
+  // ---- Jmp (abstract): in-range target -> pc := 0 ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := 0
+
+  // ---- Jmp (abstract): target >= mem.len() -> PcOob; pc unchanged ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      exit_kind := ExitFault, fault := FaultPcOob
+
+  // ---- Jz: acc != 0 -> fall through (target never validated) ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim && acc == 1 ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := pc + 1
+
+  // ---- Jz: acc == 0 -> in-range target -> pc := 0 ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim && acc == 0 ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := 0
+
+  // ---- Jz: acc == 0 -> target out of range -> PcOob; pc unchanged ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim && acc == 0 ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      exit_kind := ExitFault, fault := FaultPcOob
 
   // ---- Out (09) with IoOutBounded, room in buffer ----
-  [] exit_kind == ExitNone && cycles < max_cycles && caps == CapIoOut && out_len < max_out ->
-      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps,
-      out_len := out_len + 1, last_out_caps := caps
+  [] exit_kind == ExitNone && cycles < max_cycles && caps == CapIoOut && pc < pc_lim && out_len < max_out ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := pc + 1, out_len := out_len + 1, last_out_caps := caps
 
   // ---- Out (09) with IoOutBounded, buffer full -> OutOverflow fault, no push ----
-  [] exit_kind == ExitNone && cycles < max_cycles && caps == CapIoOut && out_len == max_out ->
-      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps,
+  [] exit_kind == ExitNone && cycles < max_cycles && caps == CapIoOut && pc < pc_lim && out_len == max_out ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
       exit_kind := ExitFault, fault := FaultOutOverflow
 
   // ---- Out (09) without IoOutBounded (Compute) -> MissingCap, no push ----
-  [] exit_kind == ExitNone && cycles < max_cycles && caps == CapCompute ->
-      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps,
+  [] exit_kind == ExitNone && cycles < max_cycles && caps == CapCompute && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
       exit_kind := ExitFault, fault := FaultMissingCap
 
   // ---- Weaken (0A) to a legal weaker/equal cap: ratchet ok ----
-  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone ->
-      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, caps := CapNone
-  [] exit_kind == ExitNone && cycles < max_cycles && (caps == CapIoOut || caps == CapCompute) ->
-      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, caps := CapCompute
-  [] exit_kind == ExitNone && cycles < max_cycles && caps == CapIoOut ->
-      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, caps := CapIoOut
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := pc + 1, caps := CapNone
+  [] exit_kind == ExitNone && cycles < max_cycles && (caps == CapIoOut || caps == CapCompute) && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := pc + 1, caps := CapCompute
+  [] exit_kind == ExitNone && cycles < max_cycles && caps == CapIoOut && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := pc + 1, caps := CapIoOut
 
   // ---- Weaken (0A) strengthening attempt -> MissingCap (caps unchanged) ----
-  [] exit_kind == ExitNone && cycles < max_cycles && caps == CapCompute ->
-      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps,
+  [] exit_kind == ExitNone && cycles < max_cycles && caps == CapCompute && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
       exit_kind := ExitFault, fault := FaultMissingCap
 
   // ---- Weaken (0A) with unknown cap byte -> IllegalOpcode fault ----
-  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone ->
-      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps,
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
       exit_kind := ExitFault, fault := FaultIllegal
 
   // ---- Host-escape byte 0xE0..=0xEF: fault after fetch; no host/mem/acc/out/caps effect ----
-  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone ->
-      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps,
-      esc_pre_out := out_len, esc_pre_caps := caps,
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      esc_pre_out := out_len, esc_pre_caps := caps, esc_pre_acc := acc, esc_pre_pages := pages_touched,
       exit_kind := ExitFault, fault := FaultHostEscape
 
   // ---- Terminal stutter ----

@@ -97,9 +97,11 @@ Maps to TC-05 `tc05_store_oob_fault` (`tests/unit/test_linear_as.rs`).
 - `out_digest` `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
 - `artifact_digest` `9412dc121dfd93894348578d2203f00f9ba5a2545cd49e00f028fa741a9804a8`
 
-## Proposed `tests/` layout (later — do not add now)
+## `tests/` layout
 
-When 1C is implemented, add an opt-in suite. Do not wire it into `scripts/verify.sh` until a device exists; V1 must keep passing with the interpreter only.
+**Now exists (1A-only oracle):** `tests/parity/test_digest_oracle.rs`, wired in `tests/Cargo.toml` as `test_digest_oracle`. It runs all six fixtures above through `Vm::run` and `blast` (after `BIL1` encode/decode) and asserts `code_digest`, `out_digest`, and `artifact_digest` against the hex in this file. It needs no 1C device and no QEMU. Run: `cargo test -p bilkrnl-tests --test test_digest_oracle`. It is not wired into `scripts/verify.sh`.
+
+Still future (1C): the opt-in device suite below. Do not wire it into `scripts/verify.sh` until a device exists; V1 must keep passing with the interpreter only.
 
 ```text
 tests/parity/                      # future crate or module; absent in V1
@@ -115,6 +117,6 @@ tests/parity/                      # future crate or module; absent in V1
   parity_1c.rs                     # same bytes via bil-softcpu MMIO; skip if MAGIC probe fails
 ```
 
-`parity_1a.rs` can land first and must agree with the hex in this file. `parity_1c.rs` stays skipped while the device is absent, which is the fallback path. Existing unit tests (TC-03, TC-04, TC-05, TC-08) stay where they are; this suite adds digest oracles, it does not replace them.
+`parity_1a.rs` is superseded by `test_digest_oracle.rs` and must keep agreeing with the hex in this file. `parity_1c.rs` stays skipped while the device is absent, which is the fallback path. Existing unit tests (TC-03, TC-04, TC-05, TC-08) stay where they are; this suite adds digest oracles, it does not replace them.
 
 Host check, later: `sha256(artifact_bytes(result))` from 1A equals the same call on the `EnclaveResult` rebuilt from `EXIT_KIND`, `CYCLES_*`, `OUT_DATA`, `CODE_DIGEST`, and `OUT_DIGEST`. QEMU serial `chamber: RATIFIED <64-hex>` for the `halt` fixture must equal that `artifact_digest` under both backends.
