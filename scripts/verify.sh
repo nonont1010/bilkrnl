@@ -42,6 +42,14 @@ run_integration() {
 
 run_system_host() {
   cargo test -p bilkrnl-tests --test test_e2e_harness -q
+  "$ROOT/tests/system/test_ratify_gate.sh" >/dev/null
+  pass "ratify-gate fixtures (TC-16)"
+}
+
+run_ratify_gate_qemu() {
+  SERIAL_LOG="$ROOT/target/qemu-serial.log"
+  "$ROOT/scripts/ratify-gate.sh" --log "$SERIAL_LOG" || fail "ratify-gate digest mismatch"
+  pass "ratify-gate qemu consumer (TC-16)"
 }
 
 run_boot_qemu() {
@@ -177,6 +185,7 @@ case "${ONLY}" in
     run_boot_qemu
     run_e2e_qemu
     run_serial_parity
+    run_ratify_gate_qemu
     run_perf
     run_torture
     check_1c_roadmap
@@ -200,6 +209,14 @@ case "${ONLY}" in
   chamber)
     cargo test -p bilkrnl-tests --test test_chamber --test test_e2e_harness -q
     ;;
+  ratify-gate)
+    "$ROOT/tests/system/test_ratify_gate.sh"
+    if [[ -f "$ROOT/target/qemu-serial.log" ]]; then
+      run_ratify_gate_qemu
+    else
+      echo "note: no qemu-serial.log yet; fixture checks only"
+    fi
+    ;;
   docs)
     refresh_docs
     ;;
@@ -207,7 +224,7 @@ case "${ONLY}" in
     run_bil_specs
     ;;
   *)
-    echo "usage: verify.sh [--quick] | [--only boot|unit-cap|unit-isa|integration-enclave|chamber|docs|bil-specs]" >&2
+    echo "usage: verify.sh [--quick] | [--only boot|unit-cap|unit-isa|integration-enclave|chamber|ratify-gate|docs|bil-specs]" >&2
     exit 2
     ;;
 esac

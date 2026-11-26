@@ -10,6 +10,7 @@ use bilkrnl_core::enclave::{artifact_digest, blast, EnclaveSlot};
 use bilkrnl_core::image::BytecodeImage;
 use bilkrnl_core::isa::{fixture_policy_fail_program, fixture_policy_pass_program};
 
+// Keep in lockstep with tests/system/golden/policy_pass.artifact_digest (TC-16 host gate).
 const POLICY_PASS_ARTIFACT: &str =
     "14ad56f22141c89095b78d1eb28cd846b3ad2c331a5c693f24a9a68711b317ea";
 

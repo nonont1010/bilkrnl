@@ -105,6 +105,7 @@ Maps to `isa::fixture_policy_pass_program` / `tools/bil1asm/examples/policy_pass
 - `code_digest` `3f7cdae560a00676d9e0d0daee614adc24b4602e9b86eb9acaeec64c740043f3`
 - `out_digest` `c26de83abdc9496cd1301470918ec39ecca1cf389ef0ae1c6504da1800d1c431`
 - `artifact_digest` `14ad56f22141c89095b78d1eb28cd846b3ad2c331a5c693f24a9a68711b317ea`
+  (also `tests/system/golden/policy_pass.artifact_digest`; enforced by `scripts/ratify-gate.sh` / TC-16)
 
 ### `policy_fail` (same gate, candidate miss)
 

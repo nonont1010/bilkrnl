@@ -13,6 +13,17 @@ INTERACTIVE=1 ./scripts/run-qemu.sh   # attach serial
 
 Expect markers: `bilkrnl: ready` → `chamber: RATIFIED` → `cli: RATIFIED` (same digest) → `bilkrnl: halt`.
 
+## Host ratify gate (external consumer)
+
+Treats `chamber: RATIFIED <digest>` as the sole go-signal. Exit 0 only if the digest matches the PASS golden in `tests/system/golden/policy_pass.artifact_digest`.
+
+```bash
+cargo build -p bilkrnl --target aarch64-unknown-uefi --release
+./scripts/ratify-gate.sh --qemu          # build path already done; re-runs QEMU + checks
+./scripts/ratify-gate.sh --log target/qemu-serial.log   # check an existing log
+./scripts/verify.sh --only ratify-gate   # fixture negatives + optional live log
+```
+
 ## Author a BIL1 program (host)
 
 Prefer the assembler (B3.1):

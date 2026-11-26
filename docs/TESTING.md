@@ -33,6 +33,7 @@
 | TC-13 | unit | `tests/unit/test_chamber.rs` |
 | TC-14 | integration | `tests/integration/test_zeroization.rs` |
 | TC-15 | perf | `tests/perf/test_cycle_ratchet.sh` |
+| TC-16 | system | `scripts/ratify-gate.sh`, `tests/system/test_ratify_gate.sh`, golden `tests/system/golden/policy_pass.artifact_digest` |
 
 ## Docs asset gate
 
