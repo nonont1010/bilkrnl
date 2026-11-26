@@ -1,4 +1,6 @@
 /target/
 .venv-docs/
+**/__pycache__/
+*.py[cod]
 **/AAVMF_VARS*.fd
 *.pdb
