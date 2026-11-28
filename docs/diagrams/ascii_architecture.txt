@@ -1,0 +1,18 @@
+bilkrnl architecture (ASCII)
+
+  +---------------------------+     +------------------+     +---------------------------+
+  | Host (speculative OK)     |     | UEFI TCB         |     | Enclave path              |
+  | QEMU/KVM aarch64 virt     |---->| AAVMF + bilkrnl  |---->| SoftISA step / bil_isa.c  |
+  | optional -device bil-     |     | kernel/ BOOTAA64 |     | EnclaveSlot load/run/disp |
+  |   softcpu (SOFTCPU=1)     |     | softcpu_mmio     |     | BlastChamber ratify (2C)  |
+  +---------------------------+     +------------------+     +-------------+-------------+
+         |                                                         |
+         | MAGIC @ 0x0c000000                                      v
+         |   hit  -> C SoftISA body                     chamber: RATIFIED <digest>
+         |   miss -> 1A isa::Vm                         chamber:rev4: / chamber:rot4:
+         v                                              cli: RATIFIED (policy twin)
+  softcpu crate = MMIO protocol only (wraps Vm)
+  softcpu/qemu/bil_isa.c = sole in-tree 1C SoftISA body
+
+Digests: code_digest = sha256(code); artifact_digest frames exit|cycles|out|digests
+Docs: docs/SOFTISA.md  docs/SOFTISA-GUIDE.md  softcpu/PARITY.md

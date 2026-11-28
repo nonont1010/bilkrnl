@@ -11,11 +11,13 @@ cargo build -p bilkrnl --target aarch64-unknown-uefi --release
 INTERACTIVE=1 ./scripts/run-qemu.sh   # attach serial
 ```
 
-Expect markers: `bilkrnl: ready` → `chamber: RATIFIED` → `cli: RATIFIED` (same digest) → `bilkrnl: halt`.
+Expect markers: `bilkrnl: ready` → `chamber: RATIFIED` → `chamber:rev4:` / `chamber:rot4:` → `cli: RATIFIED` (policy digest) → `bilkrnl: halt`.
+
+SoftCPU path: [`running.md`](running.md#opt-in-softisa-device-softcpu1).
 
 ## Host ratify gate (external consumer)
 
-Treats `chamber: RATIFIED <digest>` as the sole go-signal. Exit 0 only if the digest matches the PASS golden in `tests/system/golden/policy_pass.artifact_digest`.
+Treats `chamber: RATIFIED <digest>` as the sole go-signal. Exit 0 only if the digest matches the PASS golden in `tests/system/golden/policy_pass.artifact_digest`. Greps use the space after the colon so `chamber:rev4:` / `chamber:rot4:` do not match.
 
 ```bash
 cargo build -p bilkrnl --target aarch64-unknown-uefi --release
@@ -26,13 +28,13 @@ cargo build -p bilkrnl --target aarch64-unknown-uefi --release
 
 ## Author a BIL1 program (host)
 
-Prefer the assembler (B3.1):
+Prefer the assembler (B3.1) — full SoftISA workflow: [`SOFTISA-GUIDE.md`](SOFTISA-GUIDE.md).
 
 ```bash
-cargo run -p bil1asm -- assemble tools/bil1asm/examples/policy_pass.bil1.ir -o /tmp/policy_pass.bil1
+cargo run -p bil1asm -- assemble tools/bil1asm/examples/rot4_pass.bil1.ir -o /tmp/rot4_pass.bil1
 ```
 
-Or build an image in Rust from the sealed policy-gate fixture (kernel demo):
+Or build an image in Rust from a sealed fixture:
 
 ```rust
 use bilkrnl_core::budget::ResourceBudget;
@@ -50,7 +52,7 @@ let img = BytecodeImage::new(
 let bytes = img.encode(); // ship to enclave_load / load_bytes
 ```
 
-Manual opcodes (little-endian addresses for Load/Store/Jmp/Jz):
+Manual opcodes (little-endian addresses for Load/Store/Jmp/Jz). Full map: [`SOFTISA.md`](SOFTISA.md).
 
 | Op | Byte | Operands |
 |----|------|----------|
@@ -72,13 +74,25 @@ assert!(matches!(chamber_ratify(&result, &demo_policy_pass_spec()),
     bilkrnl_core::chamber::ChamberDecision::Ratified { .. }));
 ```
 
+## Add a sealed chamber workload
+
+Mirror `rev4` / `rot4`:
+
+1. Fixture in `bilkrnl-core/src/isa.rs` (+ fail twin).
+2. IR under `tools/bil1asm/examples/<name>_pass.bil1.ir` (+ fail) and lockstep test.
+3. `demo_<name>_pass_spec` in `chamber.rs`; export in `lib.rs`.
+4. Kernel block in `kernel/src/main.rs` with distinct label `chamber:<name>:`.
+5. Golden `tests/system/golden/<name>_pass.artifact_digest` + e2e pin + `PARITY.md` row.
+6. `scripts/verify.sh` softcpu-qemu greps for `blast: <name> via softcpu` and exact digest.
+
 ## Extend the SoftISA
 
 1. Add a variant to `isa::Op` with a free opcode **outside** `0xE0..=0xEF`.
 2. Handle it in `Vm::step` with a single commit path (no alternate prefetch).
-3. Add failing unit tests under `tests/unit/` (fault + happy).
-4. Re-run `./scripts/verify.sh --only unit-isa` then full verify.
-5. Refresh docs graphics: `python3 scripts/render-graphics.py`.
+3. Port the same semantics in `softcpu/qemu/bil_isa.c`.
+4. Add failing unit tests under `tests/unit/` (fault + happy).
+5. Re-run `./scripts/verify.sh --only unit-isa`, `make -C softcpu/qemu test-isa`, then full verify.
+6. Refresh docs graphics: `python3 scripts/render-graphics.py`.
 
 ## Debug a chamber Reject
 
@@ -101,4 +115,4 @@ python3 scripts/render-graphics.py          # provisions .venv-docs if needed
 ./scripts/verify.sh --only docs             # same, via verify gate
 ```
 
-For interactive web charts later, [lumagrid](https://github.com/bsommers/lumagrid) is allowed — see [`TOOLING.md`](TOOLING.md).
+Catalog: [`diagrams/README.md`](diagrams/README.md). For interactive web charts later, [lumagrid](https://github.com/bsommers/lumagrid) is allowed — see [`TOOLING.md`](TOOLING.md).

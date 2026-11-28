@@ -30,7 +30,12 @@ def diagram() -> Diagram:
 
         with diag.group("Enclave path") as g_enc:
             isa = diag.add(
-                Shape("isa", "SoftISA Vm", icon="chip", step="Vm::step")
+                Shape(
+                    "isa",
+                    "SoftISA",
+                    icon="chip",
+                    step="Vm::step | bil_isa.c",
+                )
             )
             slot = diag.add(
                 Shape("slot", "EnclaveSlot", icon="lock", lifecycle="load/run/dispose")
@@ -60,7 +65,7 @@ def diagram() -> Diagram:
         chamber >> diag.edge("RATIFIED", style="solid") >> art
 
         diag.caption(
-            "Host may speculate · enclave semantics must not · 1C soft-CPU deferred",
+            "Host may speculate · enclave semantics must not · 1C SoftISA opt-in (SOFTCPU=1)",
             small_caps=True,
         )
     return diag

@@ -1,15 +1,18 @@
-//! Host-side MMIO soft-CPU device simulator.
+//! Host-side MMIO **protocol** simulator for `bil-softcpu`.
 //!
-//! After `COMMIT_LOAD`, execution uses `bilkrnl-core::isa::Vm` — the same SoftISA
-//! body as the 1A interpreter until a future ISA fork. This is intentional and
-//! documented in `softcpu/README.md`. QEMU `-device bil-softcpu` and RTL remain deferred.
+//! After `COMMIT_LOAD`, execution uses `bilkrnl-core::isa::Vm` (silent wrap).
+//! This module proves the register map and lifecycle, not an independent SoftISA.
+//! The 1C SoftISA body is `softcpu/qemu/bil_isa.c` (QEMU `-device bil-softcpu`).
+//! See `softcpu/README.md` and `docs/SOFTISA.md`.
 
 use bilkrnl_core::image::BytecodeImage;
 use bilkrnl_core::isa::{ExitReason, FaultKind, Vm};
 
 use crate::regs::*;
 
-/// In-process MMIO aperture for `bil-softcpu` (64 KiB window semantics).
+/// In-process MMIO aperture (64 KiB window semantics).
+///
+/// Name says “CPU” for historical reasons; the opcode engine is still [`Vm`].
 pub struct SoftCpu {
     max_pages: u16,
     status: u32,

@@ -1,0 +1,31 @@
+<mxfile host="app.diagrams.net" modified="2026-11-28T14:00:00.000Z" agent="bilkrnl" version="22.1.0">
+  <diagram id="softisa-bodies" name="softisa">
+    <mxGraphModel dx="1100" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bil1" value="BIL1 image" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0b1428;strokeColor=#00e5ff;fontColor=#f0f6fc;" vertex="1" parent="1">
+          <mxGeometry x="80" y="160" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="vm" value="1A isa::Vm&#xa;oracle" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0b1428;strokeColor=#38bdf8;fontColor=#f0f6fc;" vertex="1" parent="1">
+          <mxGeometry x="280" y="80" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrap" value="Host softcpu&#xa;MMIO wraps Vm" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0b1428;strokeColor=#ffb800;fontColor=#f0f6fc;" vertex="1" parent="1">
+          <mxGeometry x="280" y="180" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="c" value="1C bil_isa.c&#xa;SoftISA body" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0b1428;strokeColor=#00ff9d;fontColor=#f0f6fc;" vertex="1" parent="1">
+          <mxGeometry x="280" y="280" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="parity" value="PARITY.md digests&#xa;chamber RATIFIED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0b1428;strokeColor=#00e5ff;fontColor=#f0f6fc;" vertex="1" parent="1">
+          <mxGeometry x="500" y="160" width="160" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" style="strokeColor=#00e5ff;" edge="1" parent="1" source="bil1" target="vm"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" style="strokeColor=#ffb800;dashed=1;" edge="1" parent="1" source="bil1" target="wrap"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" style="strokeColor=#00ff9d;" edge="1" parent="1" source="bil1" target="c"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" style="strokeColor=#ffb800;dashed=1;" edge="1" parent="1" source="wrap" target="vm"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" style="strokeColor=#00e5ff;" edge="1" parent="1" source="vm" target="parity"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" style="strokeColor=#00ff9d;" edge="1" parent="1" source="c" target="parity"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

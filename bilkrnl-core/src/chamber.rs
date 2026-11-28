@@ -156,3 +156,25 @@ pub fn demo_rev4_fail_spec() -> RatifySpec {
         out_predicate: OutPred::ExactBytes(b"XXXX"),
     }
 }
+
+/// Spec for the sealed attested left-rotate job (`BIL1` → Out `IL1B`).
+pub fn demo_rot4_pass_spec() -> RatifySpec {
+    RatifySpec {
+        allowed_exits: &[ExitReason::Halt],
+        max_cycles: 64,
+        max_out_bytes: 8,
+        required_caps_ceiling: Cap::Compute,
+        out_predicate: OutPred::ExactBytes(b"IL1B"),
+    }
+}
+
+/// Negative twin: ratify ExactBytes(`XXXX`) for the all-X sealed blob.
+pub fn demo_rot4_fail_spec() -> RatifySpec {
+    RatifySpec {
+        allowed_exits: &[ExitReason::Halt],
+        max_cycles: 64,
+        max_out_bytes: 8,
+        required_caps_ceiling: Cap::Compute,
+        out_predicate: OutPred::ExactBytes(b"XXXX"),
+    }
+}

@@ -74,7 +74,7 @@ run_e2e_qemu() {
 run_serial_parity() {
   SERIAL_LOG="$ROOT/target/qemu-serial.log"
   # Policy auto-blast (`chamber: RATIFIED`) must match CLI blast; ignore other workloads
-  # (e.g. `chamber:rev4: RATIFIED`).
+  # (e.g. `chamber:rev4: RATIFIED`, `chamber:rot4: RATIFIED`).
   mapfile -t chamber < <(grep -oE 'chamber: RATIFIED [0-9a-f]{64}' "$SERIAL_LOG" | awk '{print $3}')
   mapfile -t cli < <(grep -oE 'cli: RATIFIED [0-9a-f]{64}' "$SERIAL_LOG" | awk '{print $3}')
   [[ ${#chamber[@]} -ge 1 && ${#cli[@]} -ge 1 ]] || fail "need chamber: + cli: RATIFIED digests"
@@ -145,11 +145,14 @@ run_softcpu_qemu() {
   grep -q "softcpu: probed" "$SERIAL_LOG" || fail "softcpu probe missing"
   grep -q "blast: policy via softcpu" "$SERIAL_LOG" || fail "policy not via softcpu"
   grep -q "blast: rev4 via softcpu" "$SERIAL_LOG" || fail "rev4 not via softcpu"
+  grep -q "blast: rot4 via softcpu" "$SERIAL_LOG" || fail "rot4 not via softcpu"
   grep -q "chamber: RATIFIED 14ad56f22141c89095b78d1eb28cd846b3ad2c331a5c693f24a9a68711b317ea" "$SERIAL_LOG" \
     || fail "policy digest mismatch under softcpu"
   grep -q "chamber:rev4: RATIFIED 33140a88274a2f81b7d3b245b7506a020f6180debd32cc89b575d2343a646f09" "$SERIAL_LOG" \
     || fail "rev4 digest mismatch under softcpu"
-  pass "softcpu QEMU e2e (policy + rev4)"
+  grep -q "chamber:rot4: RATIFIED 24784198062f6a05cc8d2047440574f644cd1eb961784864857294aecf5b7161" "$SERIAL_LOG" \
+    || fail "rot4 digest mismatch under softcpu"
+  pass "softcpu QEMU e2e (policy + rev4 + rot4)"
 }
 
 refresh_docs() {

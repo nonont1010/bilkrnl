@@ -1,0 +1,11 @@
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> Loaded: load(BIL1)
+  Loaded --> Ran: run
+  Ran --> Disposed: dispose / zeroize
+  Loaded --> Disposed: dispose
+  Disposed --> Loaded: load next job
+  Loaded --> Idle: LoadError_Busy if second flight
+  note right of Ran
+    SoftISA: Vm::run or bil_isa.c via MMIO
+  end note

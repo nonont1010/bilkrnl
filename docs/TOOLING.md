@@ -16,9 +16,11 @@ neon corn cob nestled in a cyber husk/shell, plus a geometric path wordmark
 Architecture / workflow figures under `docs/assets/examples/` are produced by
 **[bsommers/diagrams-as-code](https://github.com/bsommers/diagrams-as-code)** (Apache-2.0).
 
-- Source scripts: [`docs/diagrams/`](diagrams/)
+- Source scripts: [`docs/diagrams/`](diagrams/) — see [`diagrams/README.md`](diagrams/README.md)
 - Orchestrator: [`scripts/render-graphics.py`](../scripts/render-graphics.py)
 - Theme: `cyber_slate` (dark HUD; closest kit palette to the neon-grid docs site)
+- Figures: `architecture`, `blast-chamber`, `verify-tiers`, `cap-ratchet`, `softisa`
+- Also checked in: Mermaid (`.mmd`), draw.io (`.drawio`), ASCII (`ascii_architecture.txt`)
 - Regenerated at the end of `scripts/verify.sh` (`refresh_docs`)
 
 ```bash

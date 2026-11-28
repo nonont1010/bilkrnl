@@ -1,0 +1,20 @@
+sequenceDiagram
+  participant H as Harness / Serial
+  participant S as EnclaveSlot
+  participant V as SoftISA body
+  participant C as BlastChamber
+
+  H->>S: enclave_load(BIL1)
+  S-->>H: EnclaveId
+  H->>S: enclave_run
+  S->>V: step/run (Vm or bil_isa.c)
+  V-->>S: EnclaveResult
+  S-->>H: result
+  H->>S: enclave_dispose
+  Note over S: zeroize RAM + out
+  H->>C: chamber_ratify(result, RatifySpec)
+  alt predicates hold
+    C-->>H: RATIFIED + artifact_digest
+  else fail
+    C-->>H: Reject
+  end

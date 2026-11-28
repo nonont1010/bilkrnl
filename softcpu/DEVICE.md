@@ -1,10 +1,14 @@
-# `bil-softcpu` Device Model Outline
+# `bil-softcpu` MMIO Device Model
 
-> **Host sim implemented** (`softcpu` Rust crate / `cargo test -p softcpu`). **QEMU SoftISA device sources** in `softcpu/qemu/` (optional forked binary via `scripts/build-qemu-bil-softcpu.sh`; not required for stock verify). **RTL deferred.** Register offsets below are the live MMIO contract for the host simulator and the C SysBus device.
+> **Two implementations share this register map:**
+> 1. **Host protocol sim** — Rust `softcpu` crate (`cargo test -p softcpu`). After `COMMIT_LOAD` it **wraps** `bilkrnl-core::isa::Vm`. Use it to test MMIO plumbing, not as proof of an independent SoftISA.
+> 2. **1C SoftISA body** — C port + SysBus device in `softcpu/qemu/` (`bil_isa.c`, `make -C softcpu/qemu test-isa`; optional forked QEMU via `scripts/build-qemu-bil-softcpu.sh`). **RTL deferred.**
+>
+> Opcode semantics: [`docs/SOFTISA.md`](../docs/SOFTISA.md).
 
 ## Overview
 
-`bil-softcpu` models a deterministic, non-speculative 6502-style soft processor matching `bilkrnl-core::isa::Vm` (`ACC: u8`, `PC: u32`, `CAPS: u8`, 4 KiB-paged linear RAM up to 256 pages / 1 MiB, and bounded output FIFO). The guest kernel (`bilkrnl.efi`) drives single-flight enclave lifecycles (`load` → `step`/`run` → read `EnclaveResult` → `reset`/zeroize → `chamber_ratify`) over MMIO.
+The aperture models a deterministic, non-speculative 6502-style soft processor matching the SoftISA contract (`ACC: u8`, `PC: u32`, `CAPS: u8`, 4 KiB-paged linear RAM up to 256 pages / 1 MiB, and bounded output FIFO). The guest kernel (`bilkrnl.efi`) drives single-flight enclave lifecycles (`load` → `step`/`run` → read `EnclaveResult` → `reset`/zeroize → `chamber_ratify`) over MMIO when MAGIC is probed.
 
 ---
 
@@ -175,4 +179,4 @@ probe MAGIC at mmio-base
 1. Interpreter backend: `Vm::new(&img.code, img.entry, img.budget, img.initial_caps)` as today.
 2. Device backend: `img.encode()` is written to `IMG_LEN` + `IMG_FIFO` and `COMMIT_LOAD`. The bytes on the FIFO are the same vector `encode` already produces. The device re-checks the header; it does not accept a second image format.
 
-`run` returns `EnclaveResult` built either by `Vm::run` or by reading the result window in section 4. `dispose` calls `Vm::zeroize` or `CMD_RESET_ZEROIZE`. `blast` does not grow a device argument. Probe failure at boot selects the interpreter for that boot; that is the V1 path, and the digests in [`PARITY.md`](./PARITY.md) are what it already produces. Once `MAGIC` has selected the device, a bad image returns `LoadError` (`Image` / `VmInit`) through the same `enclave_load` result type. It is not replayed on `Vm`. The device is required to match the 1A oracle. The oracle is not edited to match the device.
+`run` returns `EnclaveResult` built either by reading the result window in section 4 (guest softcpu / C device) or by the 1A `Vm::run` path when MAGIC is absent. Host Rust protocol tests rebuild the same window after driving `SoftCpu` (which internally calls `Vm`). `dispose` calls `CMD_RESET_ZEROIZE` or `Vm::zeroize`. `blast` does not grow a device argument. Probe failure at boot selects the interpreter for that boot; that is the stock path, and the digests in [`PARITY.md`](./PARITY.md) are what it already produces. Once `MAGIC` has selected the C device, a bad image returns `LoadError` (`Image` / `VmInit`) through the same result type. It is not silently replayed on `Vm`. The C SoftISA is required to match the 1A oracle. The oracle is not edited to match the device.

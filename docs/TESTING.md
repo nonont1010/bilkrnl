@@ -10,9 +10,12 @@
 | `./scripts/verify.sh` | All tiers + QEMU + torture + **docs refresh** |
 | `./scripts/verify.sh --only unit-cap` | Cap + budget |
 | `./scripts/verify.sh --only unit-isa` | Linear AS, faults, outbuf |
-| `./scripts/verify.sh --only chamber` | Chamber + host e2e |
+| `./scripts/verify.sh --only chamber` | Chamber + host e2e (policy / rev4 / rot4) |
 | `./scripts/verify.sh --only boot` | QEMU boot marker |
+| `./scripts/verify.sh --only softcpu` | Host MMIO protocol sim |
+| `./scripts/verify.sh --only softcpu-qemu` | C SoftISA under forked QEMU |
 | `cargo test -p bilkrnl-tests` | All Rust matrix tests |
+| `make -C softcpu/qemu test-isa` | C SoftISA body vs PARITY.md |
 
 ## Pre-build matrix ↔ files
 
@@ -37,7 +40,7 @@
 
 ## Docs asset gate
 
-`scripts/render-graphics.py` provisions `.venv-docs` with [diagrams-as-code](https://github.com/bsommers/diagrams-as-code), renders `docs/diagrams/*.py`, then checks SVG well-formedness and PNG magic. Wired at the end of verify (full and `--quick`). Tooling notes (including lumagrid): [`TOOLING.md`](TOOLING.md).
+`scripts/render-graphics.py` provisions `.venv-docs` with [diagrams-as-code](https://github.com/bsommers/diagrams-as-code), renders `docs/diagrams/*.py` (architecture, blast-chamber, verify-tiers, cap-ratchet, **softisa**), then checks SVG well-formedness and PNG magic. Wired at the end of verify (full and `--quick`). Catalog: [`diagrams/README.md`](diagrams/README.md). Tooling notes (including lumagrid): [`TOOLING.md`](TOOLING.md).
 
 ## bil formal specs (optional)
 

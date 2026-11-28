@@ -1,0 +1,11 @@
+flowchart LR
+  host[QEMU_KVM_Host] --> uefi[UEFI_AAVMF]
+  uefi --> krnl[bilkrnl_TCB]
+  krnl -->|MAGIC hit| softcpu[C_SoftISA_bil_isa]
+  krnl -->|MAGIC miss| vm[isa_Vm_1A]
+  softcpu --> slot[EnclaveResult]
+  vm --> slot
+  slot --> dispose[Dispose_Zero]
+  dispose --> chamber[BlastChamber_Ratify]
+  chamber -->|policy / rev4 / rot4| ok[RATIFIED_digest]
+  chamber --> bad[Reject]

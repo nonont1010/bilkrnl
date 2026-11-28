@@ -10,12 +10,16 @@ mod softcpu_mmio;
 use bilkrnl_core::budget::ResourceBudget;
 use bilkrnl_core::cap::Cap;
 use bilkrnl_core::chamber::{
-    chamber_ratify, demo_policy_pass_spec, demo_rev4_pass_spec, ChamberDecision,
+    chamber_ratify, demo_policy_pass_spec, demo_rev4_pass_spec, demo_rot4_pass_spec,
+    ChamberDecision,
 };
 use bilkrnl_core::digest::hex32;
 use bilkrnl_core::enclave::{blast, EnclaveSlot};
 use bilkrnl_core::image::BytecodeImage;
-use bilkrnl_core::isa::{fixture_policy_pass_program, fixture_rev4_pass_program, EnclaveResult};
+use bilkrnl_core::isa::{
+    fixture_policy_pass_program, fixture_rev4_pass_program, fixture_rot4_pass_program,
+    EnclaveResult,
+};
 use uefi::prelude::*;
 use uefi::runtime::{self, ResetType};
 
@@ -104,6 +108,31 @@ fn main() -> Status {
                 );
             }
             Err(()) => serial::write_str("blast:rev4: ERROR\r\n"),
+        }
+    }
+
+    // Workload 3: sealed attested left-rotate (BIL1 → IL1B).
+    {
+        let (entry, code) = fixture_rot4_pass_program();
+        let img = BytecodeImage::new(
+            entry,
+            code,
+            Cap::IoOutBounded,
+            ResourceBudget::new(64, 8, 1),
+        )
+        .expect("rot4 image");
+        match blast_auto(img) {
+            Ok((result, via)) => {
+                serial::write_str("blast: rot4 via ");
+                serial::write_str(via);
+                serial::write_str("\r\n");
+                ratify_line(
+                    "chamber:rot4:",
+                    &result,
+                    chamber_ratify(&result, &demo_rot4_pass_spec()),
+                );
+            }
+            Err(()) => serial::write_str("blast:rot4: ERROR\r\n"),
         }
     }
 

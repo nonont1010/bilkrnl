@@ -1,0 +1,10 @@
+flowchart TB
+  bil1[BIL1_BytecodeImage]
+  bil1 --> vm[1A_isa_Vm]
+  bil1 --> mmio[Host_softcpu_MMIO_wraps_Vm]
+  bil1 --> cisa[1C_bil_isa_c]
+  mmio -.->|calls| vm
+  cisa --> qdev[QEMU_bil_softcpu]
+  vm --> parity[PARITY_md_digests]
+  cisa --> parity
+  parity --> chamber[chamber_RATIFIED]

@@ -1,0 +1,37 @@
+<mxfile host="app.diagrams.net" modified="2026-11-28T14:00:00.000Z" agent="bilkrnl" version="22.1.0">
+  <diagram id="bilkrnl-arch" name="architecture">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="host" value="QEMU/KVM Host&#xa;aarch64 virt&#xa;SOFTCPU=1 opt-in" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0b1428;strokeColor=#00e5ff;fontColor=#f0f6fc;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="uefi" value="AAVMF + bilkrnl.efi&#xa;BOOTAA64.EFI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0b1428;strokeColor=#38bdf8;fontColor=#f0f6fc;" vertex="1" parent="1">
+          <mxGeometry x="260" y="120" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="isa" value="SoftISA&#xa;Vm::step | bil_isa.c" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0b1428;strokeColor=#00e5ff;fontColor=#f0f6fc;" vertex="1" parent="1">
+          <mxGeometry x="480" y="80" width="160" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="slot" value="EnclaveSlot&#xa;load / run / dispose" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0b1428;strokeColor=#38bdf8;fontColor=#f0f6fc;" vertex="1" parent="1">
+          <mxGeometry x="480" y="170" width="160" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="chamber" value="BlastChamber&#xa;RATIFIED digests" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0b1428;strokeColor=#00ff9d;fontColor=#f0f6fc;" vertex="1" parent="1">
+          <mxGeometry x="700" y="120" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#00e5ff;" edge="1" parent="1" source="host" target="uefi">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#00e5ff;" edge="1" parent="1" source="uefi" target="isa">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#38bdf8;" edge="1" parent="1" source="isa" target="slot">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#00ff9d;" edge="1" parent="1" source="slot" target="chamber">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

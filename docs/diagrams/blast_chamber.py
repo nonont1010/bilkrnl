@@ -32,7 +32,7 @@ def diagram() -> Diagram:
         seq.reply(chamber, cli, "Reject { reason }")
     diag = seq.build()
     diag.caption(
-        "Serial markers: bilkrnl: ready → chamber: RATIFIED → cli: RATIFIED → bilkrnl: halt",
+        "Markers: chamber: / chamber:rev4: / chamber:rot4: RATIFIED · cli: matches policy digest",
         small_caps=True,
     )
     return diag

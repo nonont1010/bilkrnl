@@ -1,6 +1,6 @@
 # 1A ↔ 1C Digest Parity Fixture Plan
 
-> **1A oracle:** `tests/parity/test_digest_oracle.rs` (unchanged). **1C host sim:** `cargo test -p softcpu` (`parity_via_mmio_*`) rebuilds `EnclaveResult` from MMIO and matches the goldens below. **C SoftISA harness:** `make -C softcpu/qemu test-isa` (same fixtures / digests; no QEMU link). **QEMU device sources:** `softcpu/qemu/` + optional `scripts/build-qemu-bil-softcpu.sh`; `scripts/verify.sh` does not require the fork. **RTL / guest probe:** deferred. The 1A interpreter remains the kernel fallback.
+> **1A oracle:** `tests/parity/test_digest_oracle.rs`. **Host MMIO protocol sim:** `cargo test -p softcpu` (`parity_via_mmio_*`) rebuilds `EnclaveResult` from MMIO via a silent `Vm` wrap — protocol tests, not a second SoftISA. **1C SoftISA body:** `softcpu/qemu/bil_isa.c` + `make -C softcpu/qemu test-isa` (same fixtures / digests; no QEMU link). **QEMU device:** optional `scripts/build-qemu-bil-softcpu.sh` / `SOFTCPU=1`; guest MAGIC probe `@ 0x0c000000`. **RTL:** deferred. Stock kernel fallback remains the 1A interpreter.
 
 This plan is how `bil-softcpu` proves it matches the in-kernel interpreter on the three blast-chamber digests. It does not relax the contracts in [`README.md`](./README.md) and [`docs/roadmap/1c-softcpu.md`](../docs/roadmap/1c-softcpu.md): same `BIL1` image, same opcode map (including `0xE0..=0xEF`), same `EnclaveResult` framing, same dispose-then-`chamber_ratify` order.
 
@@ -125,6 +125,16 @@ Maps to `isa::fixture_rev4_pass_program` / `tools/bil1asm/examples/rev4_pass.bil
 - `artifact_digest` `33140a88274a2f81b7d3b245b7506a020f6180debd32cc89b575d2343a646f09`
   (also `tests/system/golden/rev4_pass.artifact_digest`)
 
+### `rot4_pass` (sealed attested left-rotate — third chamber workload)
+
+Maps to `isa::fixture_rot4_pass_program` / `tools/bil1asm/examples/rot4_pass.bil1.ir`. Sealed `@0..@3 = BIL1`, entry=4; Out left-rotate one byte `IL1B`, weaken to Compute, Halt.
+
+- Expect `EXIT_KIND = Halt (0)`, `cycles = 10`, `out = 49 4c 31 42` (`IL1B`), `caps_at_exit = 1`.
+- `code_digest` `f076f7c576361c2bd71e9bff7473976a29d6a6a58e43752a6cc398d50e711705`
+- `out_digest` `e4dadea762c9621dfe414e228a0f5bc9530af4c0a7977c7220105f22aeb5d2ea`
+- `artifact_digest` `24784198062f6a05cc8d2047440574f644cd1eb961784864857294aecf5b7161`
+  (also `tests/system/golden/rot4_pass.artifact_digest`)
+
 ### B3.4 lowered (1A goldens from `bil1asm lower`)
 
 Produced by `bil1asm::lower_stack_bc` from stack-bytecode `.bc.txt` (no `bil` binary). Enforced by `tests/parity/test_lowered_goldens.rs` (`Vm::run` + `blast`). Once 1C exists, these rows are extra parity vectors with no change to 1C itself.
@@ -141,8 +151,8 @@ Produced by `bil1asm::lower_stack_bc` from stack-bytecode `.bc.txt` (no `bil` bi
 
 **B3.4 lowered goldens:** `tests/parity/test_lowered_goldens.rs` (`test_lowered_goldens`), also unit-tier. Lowers the `.bc.txt` sources above via `bil1asm` and pins digests to this section. Run: `cargo test -p bilkrnl-tests --test test_lowered_goldens`.
 
-**1C host MMIO sim (landed):** `softcpu/tests/parity_via_mmio.rs` — `parity_via_mmio_*` for the six classic fixtures. Always run via `cargo test -p softcpu` / `scripts/verify.sh` unit tier (`--only softcpu`). Execution body is still `isa::Vm` behind MMIO (honest until a SoftISA fork).
+**Host MMIO protocol sim (landed):** `softcpu/tests/parity_via_mmio.rs` — `parity_via_mmio_*` for the six classic fixtures. Always run via `cargo test -p softcpu` / `scripts/verify.sh` unit tier (`--only softcpu`). These prove the **MMIO register protocol** rebuilds `EnclaveResult`; execution still calls `isa::Vm` (not an independent SoftISA body).
 
-**QEMU SoftISA (landed, optional binary):** `softcpu/qemu/` C port + SysBus device; build with `scripts/build-qemu-bil-softcpu.sh`, run with `SOFTCPU=1`. Still future: guest DTB probe, serial `chamber: RATIFIED` under the fork as the device backend, RTL, optional on-disk `.bil1` blobs.
+**1C SoftISA body (landed, optional QEMU binary):** `softcpu/qemu/bil_isa.c` + SysBus device; harness `make -C softcpu/qemu test-isa`; build with `scripts/build-qemu-bil-softcpu.sh`, run with `SOFTCPU=1`. Guest MAGIC probe `@ 0x0c000000` selects the C device. Still deferred: FPGA/RTL, optional on-disk `.bil1` blobs.
 
 Existing unit tests (TC-03, TC-04, TC-05, TC-08) stay where they are; this suite adds digest oracles, it does not replace them.

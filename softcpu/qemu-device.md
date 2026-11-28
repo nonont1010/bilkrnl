@@ -1,12 +1,12 @@
 # QEMU `-device bil-softcpu` Registration
 
-> **Status:** Device sources + SoftISA C port live in [`softcpu/qemu/`](./qemu/). Host MMIO sim (`softcpu` Rust crate) remains the in-process seam. Build the forked binary with [`scripts/build-qemu-bil-softcpu.sh`](../scripts/build-qemu-bil-softcpu.sh). Stock `scripts/verify.sh` / default `run-qemu.sh` do **not** require the fork. Guest DTB probe is separate work.
+> **Status:** Device sources + **1C SoftISA C body** live in [`softcpu/qemu/`](./qemu/). Host Rust `softcpu` crate is the in-process **MMIO protocol** seam (wraps `Vm`). Build the forked binary with [`scripts/build-qemu-bil-softcpu.sh`](../scripts/build-qemu-bil-softcpu.sh). Stock `scripts/verify.sh` / default `run-qemu.sh` do **not** require the fork. Guest MAGIC probe `@ 0x0c000000` selects the device when present.
 
 ## What landed
 
 | Path | Role |
 | :--- | :--- |
-| `softcpu/qemu/bil_isa.{h,c}` | SoftISA matching `bilkrnl-core::isa::Vm` (opcodes, budgets, caps, digests) |
+| `softcpu/qemu/bil_isa.{h,c}` | **1C SoftISA body** — port of `bilkrnl-core::isa::Vm` (opcodes, budgets, caps, digests) |
 | `softcpu/qemu/sha256.{h,c}` | Public-domain SHA-256 for `code`/`out`/`artifact` digests |
 | `softcpu/qemu/bil-softcpu.c` | `SysBusDevice` MMIO map from [`DEVICE.md`](./DEVICE.md) |
 | `softcpu/qemu/test_bil_isa.c` | Host harness (no QEMU link) — PARITY fixtures |

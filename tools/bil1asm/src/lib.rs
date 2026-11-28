@@ -744,4 +744,22 @@ mod policy_examples {
         assert_eq!(a.image.entry, entry);
         assert_eq!(a.image.code, code);
     }
+
+    #[test]
+    fn rot4_pass_ir_matches_core_fixture() {
+        let src = fs::read_to_string(example("rot4_pass.bil1.ir")).unwrap();
+        let a = assemble(&src).unwrap();
+        let (entry, code) = bilkrnl_core::isa::fixture_rot4_pass_program();
+        assert_eq!(a.image.entry, entry);
+        assert_eq!(a.image.code, code);
+    }
+
+    #[test]
+    fn rot4_fail_ir_matches_core_fixture() {
+        let src = fs::read_to_string(example("rot4_fail.bil1.ir")).unwrap();
+        let a = assemble(&src).unwrap();
+        let (entry, code) = bilkrnl_core::isa::fixture_rot4_fail_program();
+        assert_eq!(a.image.entry, entry);
+        assert_eq!(a.image.code, code);
+    }
 }

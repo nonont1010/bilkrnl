@@ -142,14 +142,15 @@
       <div class="stats">
         <span class="pill ok">1A interpreter</span>
         <span class="pill ok">2C chamber</span>
-        <span class="pill warn">1C deferred</span>
-        <span class="pill">TC-01..15</span>
+        <span class="pill">1C SoftISA (opt-in)</span>
+        <span class="pill">TC-01..16</span>
         <span class="pill">aarch64 virt</span>
       </div>
       <div class="actions">
         <a class="btn primary" href="https://github.com/nonont1010/bilkrnl">GitHub</a>
         <a class="btn" href="usermanual/">User manual</a>
         <a class="btn" href="ARCHITECTURE.md">Architecture</a>
+        <a class="btn" href="SOFTISA.md">SoftISA</a>
         <button class="btn" type="button" id="copy-install">Copy install</button>
       </div>
     </header>
@@ -164,6 +165,10 @@
         <figure class="card" data-tags="chamber workflow">
           <img src="assets/examples/blast-chamber.svg" alt="Blast chamber pipeline dispose then ratify" />
           <p>Load → Run → Dispose → Ratify (2C)</p>
+        </figure>
+        <figure class="card" data-tags="arch isa">
+          <img src="assets/examples/softisa.svg" alt="SoftISA bodies: 1A Vm, host MMIO wrap, 1C bil_isa.c" />
+          <p>1A <code>Vm</code> · host MMIO wrap · 1C <code>bil_isa.c</code></p>
         </figure>
         <figure class="card" data-tags="verify testing">
           <img src="assets/examples/verify-tiers.svg" alt="verify.sh layered test tiers" />
@@ -182,6 +187,7 @@
       <div class="filter-row" id="filters">
         <button type="button" class="active" data-filter="all">all</button>
         <button type="button" data-filter="arch">arch</button>
+        <button type="button" data-filter="isa">isa</button>
         <button type="button" data-filter="chamber">chamber</button>
         <button type="button" data-filter="verify">verify</button>
         <button type="button" data-filter="caps">caps</button>
@@ -204,12 +210,14 @@ sudo apt-get install -y qemu-system-arm qemu-efi-aarch64 inkscape
       <div class="docs">
         <a class="doc-link" href="PURPOSE.md">PURPOSE<span>Why this exists</span></a>
         <a class="doc-link" href="ARCHITECTURE.md">ARCHITECTURE<span>Contracts &amp; flow</span></a>
+        <a class="doc-link" href="SOFTISA.md">SOFTISA<span>Instruction set datasheet</span></a>
+        <a class="doc-link" href="SOFTISA-GUIDE.md">SOFTISA-GUIDE<span>Programmer guide</span></a>
         <a class="doc-link" href="HOWTO.md">HOWTO<span>Task recipes</span></a>
         <a class="doc-link" href="running.md">running<span>QEMU recipes</span></a>
         <a class="doc-link" href="TESTING.md">TESTING<span>TC matrix</span></a>
         <a class="doc-link" href="EVIDENCE.md">EVIDENCE<span>What green means</span></a>
         <a class="doc-link" href="usermanual/">User manual<span>Operator path</span></a>
-        <a class="doc-link" href="roadmap/1c-softcpu.md">1C roadmap<span>Soft-CPU later</span></a>
+        <a class="doc-link" href="roadmap/1c-softcpu.md">1C roadmap<span>Soft-CPU / MMIO</span></a>
         <a class="doc-link" href="TOOLING.md">TOOLING<span>diagrams-as-code · lumagrid</span></a>
         <a class="doc-link" href="roadmap/bil-integration.md">bil integration<span>Bounded Invariant Logic</span></a>
         <a class="doc-link" href="https://github.com/nonont1010/bilkrnl/blob/main/specs/bil/enclave_chamber.bil">enclave_chamber.bil<span>Model-checked lifecycle</span></a>

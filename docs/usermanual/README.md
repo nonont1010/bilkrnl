@@ -23,10 +23,10 @@ cd bilkrnl
 
 ```bash
 ./scripts/verify.sh --only boot
-grep RATIFIED target/qemu-serial.log
+rg 'chamber:|cli: RATIFIED' target/qemu-serial.log
 ```
 
-Both `chamber: RATIFIED` and `cli: RATIFIED` lines must share the same digest.
+`chamber: RATIFIED` and `cli: RATIFIED` must share the policy digest. Also expect `chamber:rev4:` and `chamber:rot4:` for sealed attested jobs. SoftISA details: [SOFTISA-GUIDE](../SOFTISA-GUIDE.md).
 
 ## 4. Interactive serial
 
@@ -39,7 +39,7 @@ V1 CLI announces: `help enclave-load enclave-run enclave-dispose chamber-ratify 
 
 ## 5. Write your own fixture (host)
 
-Use `bilkrnl_core::isa::Op` bytes inside `BytecodeImage::new`, then `blast` + `chamber_ratify` with a custom `RatifySpec`. See [HOWTO](../HOWTO.md).
+Use `bilkrnl_core::isa::Op` bytes inside `BytecodeImage::new`, then `blast` + `chamber_ratify` with a custom `RatifySpec`. See [SOFTISA-GUIDE](../SOFTISA-GUIDE.md), [SOFTISA datasheet](../SOFTISA.md), and [HOWTO](../HOWTO.md).
 
 ## 6. When something fails
 

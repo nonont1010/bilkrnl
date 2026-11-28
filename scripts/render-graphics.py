@@ -58,7 +58,7 @@ def main() -> int:
     # Run renderer body inside the docs venv so imports resolve.
     body = r"""
 from pathlib import Path
-from docs.diagrams import architecture, blast_chamber, verify_tiers, cap_ratchet
+from docs.diagrams import architecture, blast_chamber, verify_tiers, cap_ratchet, softisa
 from docs.diagrams.brand_tron_corn import render_brand
 
 ROOT = Path(%r)
@@ -75,6 +75,7 @@ architecture.render(EXAMPLES, "architecture")
 blast_chamber.render(EXAMPLES, "blast-chamber")
 verify_tiers.render(EXAMPLES, "verify-tiers")
 cap_ratchet.render(EXAMPLES, "cap-ratchet")
+softisa.render(EXAMPLES, "softisa")
 
 # TRON neon techno-corn brand (custom SVG; not diagrams-as-code shapes)
 render_brand(ASSETS, ROOT_ASSETS, ICONS)

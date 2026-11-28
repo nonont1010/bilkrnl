@@ -1,14 +1,17 @@
-//! Host MMIO soft-CPU simulator for Milestone 1C.
+//! Host MMIO **protocol** simulator for Milestone 1C.
 //!
-//! # Honest SoftISA body
+//! # Not a SoftISA body
 //!
 //! After `COMMIT_LOAD`, this crate calls [`bilkrnl_core::isa::Vm`] for `STEP` /
-//! `RUN`. Digests therefore match the 1A interpreter by construction until a
-//! future SoftISA fork. The value of this crate is the **MMIO protocol seam**
-//! (register map, load/run/dispose lifecycle, `EnclaveResult` rebuild) — not a
-//! second opcode implementation.
+//! `RUN`. Digests therefore match the 1A interpreter **by construction**. The
+//! value of this crate is the **MMIO register protocol** (load/run/dispose
+//! lifecycle, `EnclaveResult` rebuild) — not a second opcode implementation.
 //!
-//! QEMU `-device bil-softcpu` and FPGA/RTL backends remain deferred.
+//! # Where the 1C SoftISA body lives
+//!
+//! Independent SoftISA execution is the C port in `softcpu/qemu/bil_isa.c`,
+//! exercised by `make -C softcpu/qemu test-isa` and by QEMU `-device bil-softcpu`
+//! (`scripts/build-qemu-bil-softcpu.sh`, `SOFTCPU=1`). FPGA/RTL remain deferred.
 
 pub mod device;
 pub mod regs;
