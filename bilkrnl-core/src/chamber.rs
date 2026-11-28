@@ -134,3 +134,25 @@ pub fn demo_policy_fail_spec() -> RatifySpec {
         out_predicate: OutPred::ExactBytes(b"FAIL\n"),
     }
 }
+
+/// Spec for the sealed attested-reverse job (`BIL!` → Out `!LIB`).
+pub fn demo_rev4_pass_spec() -> RatifySpec {
+    RatifySpec {
+        allowed_exits: &[ExitReason::Halt],
+        max_cycles: 64,
+        max_out_bytes: 8,
+        required_caps_ceiling: Cap::Compute,
+        out_predicate: OutPred::ExactBytes(b"!LIB"),
+    }
+}
+
+/// Negative twin: ratify ExactBytes(`XXXX`) for the all-X sealed blob.
+pub fn demo_rev4_fail_spec() -> RatifySpec {
+    RatifySpec {
+        allowed_exits: &[ExitReason::Halt],
+        max_cycles: 64,
+        max_out_bytes: 8,
+        required_caps_ceiling: Cap::Compute,
+        out_predicate: OutPred::ExactBytes(b"XXXX"),
+    }
+}

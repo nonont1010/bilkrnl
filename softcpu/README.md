@@ -1,43 +1,52 @@
-# Milestone 1C — Soft-CPU host seam (`softcpu/`)
+# Milestone 1C — Soft-CPU (`softcpu/`)
 
-> **Status:** **Host MMIO simulator implemented** (`cargo test -p softcpu`). QEMU `-device bil-softcpu` fork and FPGA/RTL remain **deferred**. The 1A in-kernel interpreter (`bilkrnl-core::isa::Vm`) stays authoritative for the UEFI kernel path; this crate does not change `bilkrnl.efi` or require a forked `qemu-system-aarch64`.
->
-> Specs: [`DEVICE.md`](./DEVICE.md) (MMIO map), [`PARITY.md`](./PARITY.md) (digest goldens), [`include/bil_softcpu.h`](./include/bil_softcpu.h) (C sketch, **not compiled** — keep the `#error` guard), [`qemu-device.md`](./qemu-device.md) (future fork notes).
+> **Status:** **Host MMIO simulator** (`cargo test -p softcpu`) **and** **QEMU SoftISA device sources** (`softcpu/qemu/`, `make -C softcpu/qemu test-isa`) are landed. Forked binary is **optional** (`scripts/build-qemu-bil-softcpu.sh` → `SOFTCPU=1 ./scripts/run-qemu.sh`). FPGA/RTL remain deferred. The 1A in-kernel interpreter stays the UEFI kernel body until guest DTB probe lands.
 
-## Purpose
+Specs: [`DEVICE.md`](./DEVICE.md), [`PARITY.md`](./PARITY.md), [`qemu-device.md`](./qemu-device.md), design-only [`include/bil_softcpu.h`](./include/bil_softcpu.h) (keep `#error`).
 
-Host-side Rust MMIO device simulator matching the register map in `DEVICE.md` / `bil_softcpu.h`. Guest-facing load APIs (`BytecodeImage`, `enclave_load` / `blast`) are unchanged. A future QEMU device can reuse the same protocol; V1 verify only needs this in-process seam.
+## Layers
 
-## Honest SoftISA body (same `Vm` until a fork)
+| Layer | Location | SoftISA body |
+| :--- | :--- | :--- |
+| Host Rust MMIO seam | `softcpu` crate | Still calls `bilkrnl-core::isa::Vm` behind registers |
+| C SoftISA + QEMU device | `softcpu/qemu/` | Own port of `Vm` (opcodes / budgets / caps / digests) |
+| Stock verify / run | `scripts/verify.sh`, default `run-qemu.sh` | No fork required |
 
-After `COMMIT_LOAD`, execution calls **`bilkrnl-core::isa::Vm`** for `STEP` / `RUN`. Digests therefore match the 1A oracle by construction. This crate owns the **MMIO protocol** (registers, load → run → result window → `RESET_ZEROIZE`), not a second opcode decoder. A future SoftISA fork would replace the `Vm` body behind the same registers.
+## Host Rust seam
 
-## Protocol
+Protocol: `MAGIC` → `BEGIN_LOAD` → FIFO → `COMMIT_LOAD` → `RUN` → result window → `RESET_ZEROIZE`.
 
-```text
-probe MAGIC (0x314C4942)
-BEGIN_LOAD → stream BIL1 via IMG_FIFO → COMMIT_LOAD
-RUN → read EXIT / CYCLES / OUT / DIGESTS → rebuild EnclaveResult
-RESET_ZEROIZE → ZERO_VERIFIED == 1
+```bash
+cargo test -p softcpu
 ```
 
-Host helpers: `SoftCpu`, `blast_via_mmio`, `enclave_result_from_mmio`, `artifact_digest_from_mmio`.
+## C SoftISA harness (PARITY.md)
 
-## Parity tests
+```bash
+make -C softcpu/qemu test-isa
+```
 
-`cargo test -p softcpu` runs `parity_via_mmio_*` for the classic PARITY.md fixtures (`halt`, `budget_exceed`, `host_escape_e0`, `out_fill_ok`, `out_fill_overflow`, `mem_oob`). Wired into `scripts/verify.sh` unit tier (also `--only softcpu`). The 1A oracle `tests/parity/test_digest_oracle.rs` is untouched.
+Fixtures: `halt`, `budget_exceed`, `host_escape_e0`, `out_fill_ok` / `out_fill_overflow`, `mem_oob`. Digests must match PARITY.md hex.
 
-## Non-negotiable contracts (byte-identical with `bilkrnl-core`)
+## QEMU `-device bil-softcpu` (optional)
 
-- `BytecodeImage` encode/decode (`BIL1`, 32-byte header)
-- Opcode map in `bilkrnl-core::isa::Op` (including `0xE0..=0xEF` host-escape traps)
-- `EnclaveResult` fields and `artifact_digest` framing
-- Blast chamber: dispose → `chamber_ratify` (2C)
-- Capability poset / ratchet (`Cap`, weaken-only)
+```bash
+./scripts/build-qemu-bil-softcpu.sh
+SOFTCPU=1 ./scripts/run-qemu.sh
+```
 
-## Deferred (not in this crate)
+Installs `target/qemu-bil-softcpu/bin/qemu-system-aarch64`. Guest MMIO driver / DTB probe is separate work; without it the kernel still uses in-tree `Vm`.
 
-- QEMU fork registering `-device bil-softcpu` / DTB discovery
-- Guest EFI driver probing MMIO instead of in-kernel `Vm`
-- FPGA / RTL backends
-- Compiling `include/bil_softcpu.h` (design-only; `#error` under build macros)
+## Non-negotiable contracts
+
+- `BytecodeImage` encode/decode (`BIL1`)
+- Opcode map including `0xE0..=0xEF` host-escape traps
+- `EnclaveResult` / `artifact_digest` framing
+- Dispose → `chamber_ratify`
+- Cap weaken-only poset
+
+## Deferred
+
+- Guest EFI DTB probe / MMIO driver
+- FPGA / RTL
+- Compiling `include/bil_softcpu.h` into bilkrnl

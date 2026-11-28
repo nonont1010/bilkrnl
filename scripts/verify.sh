@@ -33,6 +33,8 @@ run_unit() {
     --test test_lowered_goldens -q
   # 1C host MMIO soft-CPU seam (always; no QEMU fork required).
   cargo test -p softcpu -q
+  # C SoftISA oracle used by the QEMU device (no forked QEMU required).
+  run_softcpu_isa
 }
 
 run_security() {
@@ -71,10 +73,12 @@ run_e2e_qemu() {
 
 run_serial_parity() {
   SERIAL_LOG="$ROOT/target/qemu-serial.log"
-  # Extract digests after RATIFIED markers; auto blast and cli blast must match.
-  mapfile -t digests < <(grep -oE 'RATIFIED [0-9a-f]{64}' "$SERIAL_LOG" | awk '{print $2}')
-  [[ ${#digests[@]} -ge 2 ]] || fail "need >=2 RATIFIED digests for parity"
-  [[ "${digests[0]}" == "${digests[1]}" ]] || fail "cli/harness digest mismatch: ${digests[0]} vs ${digests[1]}"
+  # Policy auto-blast (`chamber: RATIFIED`) must match CLI blast; ignore other workloads
+  # (e.g. `chamber:rev4: RATIFIED`).
+  mapfile -t chamber < <(grep -oE 'chamber: RATIFIED [0-9a-f]{64}' "$SERIAL_LOG" | awk '{print $3}')
+  mapfile -t cli < <(grep -oE 'cli: RATIFIED [0-9a-f]{64}' "$SERIAL_LOG" | awk '{print $3}')
+  [[ ${#chamber[@]} -ge 1 && ${#cli[@]} -ge 1 ]] || fail "need chamber: + cli: RATIFIED digests"
+  [[ "${chamber[0]}" == "${cli[0]}" ]] || fail "cli/harness digest mismatch: ${chamber[0]} vs ${cli[0]}"
   pass "serial parity (TC-02)"
 }
 
@@ -120,7 +124,32 @@ run_torture() {
 
 check_1c_roadmap() {
   [[ -f "$ROOT/docs/roadmap/1c-softcpu.md" ]] || fail "missing 1C roadmap"
-  pass "1C roadmap present"
+  [[ -f "$ROOT/softcpu/qemu/bil-softcpu.c" ]] || fail "missing QEMU bil-softcpu device source"
+  pass "1C roadmap + QEMU device sources present"
+}
+
+run_softcpu_isa() {
+  make -C "$ROOT/softcpu/qemu" test-isa >/dev/null
+  pass "softcpu C SoftISA parity (test-isa)"
+}
+
+run_softcpu_qemu() {
+  local fork="$ROOT/target/qemu-bil-softcpu/bin/qemu-system-aarch64"
+  if [[ ! -x "$fork" ]]; then
+    echo "SKIP: forked QEMU missing (./scripts/build-qemu-bil-softcpu.sh)"
+    return 0
+  fi
+  build_kernel
+  SERIAL_LOG="$ROOT/target/qemu-serial.log"
+  TIMEOUT_SEC=45 SOFTCPU=1 "$ROOT/scripts/run-qemu.sh"
+  grep -q "softcpu: probed" "$SERIAL_LOG" || fail "softcpu probe missing"
+  grep -q "blast: policy via softcpu" "$SERIAL_LOG" || fail "policy not via softcpu"
+  grep -q "blast: rev4 via softcpu" "$SERIAL_LOG" || fail "rev4 not via softcpu"
+  grep -q "chamber: RATIFIED 14ad56f22141c89095b78d1eb28cd846b3ad2c331a5c693f24a9a68711b317ea" "$SERIAL_LOG" \
+    || fail "policy digest mismatch under softcpu"
+  grep -q "chamber:rev4: RATIFIED 33140a88274a2f81b7d3b245b7506a020f6180debd32cc89b575d2343a646f09" "$SERIAL_LOG" \
+    || fail "rev4 digest mismatch under softcpu"
+  pass "softcpu QEMU e2e (policy + rev4)"
 }
 
 refresh_docs() {
@@ -190,6 +219,7 @@ case "${ONLY}" in
     run_boot_qemu
     run_e2e_qemu
     run_serial_parity
+    run_softcpu_qemu
     run_ratify_gate_qemu
     run_perf
     run_torture
@@ -231,9 +261,13 @@ case "${ONLY}" in
   softcpu)
     cargo test -p softcpu -q
     pass "softcpu host MMIO parity"
+    run_softcpu_isa
+    ;;
+  softcpu-qemu)
+    run_softcpu_qemu
     ;;
   *)
-    echo "usage: verify.sh [--quick] | [--only boot|unit-cap|unit-isa|integration-enclave|chamber|ratify-gate|docs|bil-specs|softcpu]" >&2
+    echo "usage: verify.sh [--quick] | [--only boot|unit-cap|unit-isa|integration-enclave|chamber|ratify-gate|docs|bil-specs|softcpu|softcpu-qemu]" >&2
     exit 2
     ;;
 esac

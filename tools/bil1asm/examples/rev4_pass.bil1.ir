@@ -1,0 +1,22 @@
+; rev4_pass.bil1.ir — sealed attested reverse (BIL! → Out !LIB)
+; Digests bind the sealed payload; consumer ratifies ExactBytes("!LIB").
+.caps   IoOutBounded
+.budget cycles=64 out=8 pages=1
+.entry  start
+
+.byte 0x42
+.byte 0x49
+.byte 0x4C
+.byte 0x21
+
+start:
+    ld @3
+    out
+    ld @2
+    out
+    ld @1
+    out
+    ld @0
+    out
+    weaken Compute
+    halt

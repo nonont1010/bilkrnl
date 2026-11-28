@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Boot bilkrnl.efi under QEMU aarch64 virt + AAVMF UEFI.
+# Opt-in soft-CPU: SOFTCPU=1 (or QEMU_BIN pointing at the forked binary) appends
+# -device bil-softcpu,max-pages=256. Stock path (default) is unchanged.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -12,6 +14,26 @@ FIRMWARE_VARS_TEMPLATE="${FIRMWARE_VARS_TEMPLATE:-/usr/share/AAVMF/AAVMF_VARS.fd
 VARS_COPY="$ROOT/target/AAVMF_VARS.fd"
 TIMEOUT_SEC="${TIMEOUT_SEC:-30}"
 SERIAL_LOG="${SERIAL_LOG:-$ROOT/target/qemu-serial.log}"
+FORKED_QEMU="$ROOT/target/qemu-bil-softcpu/bin/qemu-system-aarch64"
+QEMU_BIN="${QEMU_BIN:-qemu-system-aarch64}"
+SOFTCPU="${SOFTCPU:-0}"
+
+if [[ "$SOFTCPU" == "1" ]]; then
+  if [[ -z "${QEMU_BIN:-}" || "$QEMU_BIN" == "qemu-system-aarch64" ]]; then
+    if [[ -x "$FORKED_QEMU" ]]; then
+      QEMU_BIN="$FORKED_QEMU"
+    else
+      echo "SOFTCPU=1 requires forked QEMU at $FORKED_QEMU" >&2
+      echo "Build with: ./scripts/build-qemu-bil-softcpu.sh" >&2
+      exit 1
+    fi
+  fi
+fi
+
+# If QEMU_BIN already points at the fork, enable the device even without SOFTCPU=1.
+if [[ "$QEMU_BIN" == *"qemu-bil-softcpu"* ]]; then
+  SOFTCPU=1
+fi
 
 if [[ ! -f "$EFI_SRC" ]]; then
   echo "missing EFI: $EFI_SRC (build kernel first)" >&2
@@ -29,7 +51,7 @@ cp "$EFI_SRC" "$ESP/EFI/BOOT/BOOTAA64.EFI"
 cp "$FIRMWARE_VARS_TEMPLATE" "$VARS_COPY"
 
 ARGS=(
-  qemu-system-aarch64
+  "$QEMU_BIN"
   -machine virt
   -cpu cortex-a72
   -m 256M
@@ -38,6 +60,10 @@ ARGS=(
   -drive if=pflash,format=raw,file="$VARS_COPY"
   -drive format=raw,file="fat:rw:$ESP"
 )
+
+if [[ "$SOFTCPU" == "1" ]]; then
+  ARGS+=(-device bil-softcpu,max-pages=256)
+fi
 
 if [[ "${INTERACTIVE:-0}" == "1" ]]; then
   exec "${ARGS[@]}"

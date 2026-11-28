@@ -1,6 +1,6 @@
 # 1A ↔ 1C Digest Parity Fixture Plan
 
-> **1A oracle:** `tests/parity/test_digest_oracle.rs` (unchanged). **1C host sim:** `cargo test -p softcpu` (`parity_via_mmio_*`) rebuilds `EnclaveResult` from MMIO and matches the goldens below. **QEMU device / RTL:** still deferred; `scripts/verify.sh` does not require a forked QEMU. The 1A interpreter remains the kernel fallback.
+> **1A oracle:** `tests/parity/test_digest_oracle.rs` (unchanged). **1C host sim:** `cargo test -p softcpu` (`parity_via_mmio_*`) rebuilds `EnclaveResult` from MMIO and matches the goldens below. **C SoftISA harness:** `make -C softcpu/qemu test-isa` (same fixtures / digests; no QEMU link). **QEMU device sources:** `softcpu/qemu/` + optional `scripts/build-qemu-bil-softcpu.sh`; `scripts/verify.sh` does not require the fork. **RTL / guest probe:** deferred. The 1A interpreter remains the kernel fallback.
 
 This plan is how `bil-softcpu` proves it matches the in-kernel interpreter on the three blast-chamber digests. It does not relax the contracts in [`README.md`](./README.md) and [`docs/roadmap/1c-softcpu.md`](../docs/roadmap/1c-softcpu.md): same `BIL1` image, same opcode map (including `0xE0..=0xEF`), same `EnclaveResult` framing, same dispose-then-`chamber_ratify` order.
 
@@ -115,6 +115,16 @@ Maps to `isa::fixture_policy_fail_program` / `policy_fail.bil1.ir`. Candidate `0
 - `out_digest` `4f8e9e45f8a9e1843b81eaf3bdf52a6b778d415d23bf985774a9d34a43f69bd5`
 - `artifact_digest` `8bc9a3a5142a177e906ee7acaec3efe6c4ec7686627503b0114fa1b0b8e3dc1e`
 
+### `rev4_pass` (sealed attested reverse — second chamber workload)
+
+Maps to `isa::fixture_rev4_pass_program` / `tools/bil1asm/examples/rev4_pass.bil1.ir`. Sealed `@0..@3 = BIL!`, entry=4; Out reverse `!LIB`, weaken to Compute, Halt.
+
+- Expect `EXIT_KIND = Halt (0)`, `cycles = 10`, `out = 21 4c 49 42` (`!LIB`), `caps_at_exit = 1`.
+- `code_digest` `fd91a4bcc7b88d004d971cd6e96207543685266027dd7a190f9418462e4960ff`
+- `out_digest` `37c755b6cacb212fef0722c3daaf79fae315f4c4a6c30f8c04415632014bbd4e`
+- `artifact_digest` `33140a88274a2f81b7d3b245b7506a020f6180debd32cc89b575d2343a646f09`
+  (also `tests/system/golden/rev4_pass.artifact_digest`)
+
 ### B3.4 lowered (1A goldens from `bil1asm lower`)
 
 Produced by `bil1asm::lower_stack_bc` from stack-bytecode `.bc.txt` (no `bil` binary). Enforced by `tests/parity/test_lowered_goldens.rs` (`Vm::run` + `blast`). Once 1C exists, these rows are extra parity vectors with no change to 1C itself.
@@ -133,6 +143,6 @@ Produced by `bil1asm::lower_stack_bc` from stack-bytecode `.bc.txt` (no `bil` bi
 
 **1C host MMIO sim (landed):** `softcpu/tests/parity_via_mmio.rs` — `parity_via_mmio_*` for the six classic fixtures. Always run via `cargo test -p softcpu` / `scripts/verify.sh` unit tier (`--only softcpu`). Execution body is still `isa::Vm` behind MMIO (honest until a SoftISA fork).
 
-Still future (QEMU device / RTL): guest probe of real `-device bil-softcpu`, serial `chamber: RATIFIED` under forked QEMU, and optional on-disk `.bil1` fixture blobs.
+**QEMU SoftISA (landed, optional binary):** `softcpu/qemu/` C port + SysBus device; build with `scripts/build-qemu-bil-softcpu.sh`, run with `SOFTCPU=1`. Still future: guest DTB probe, serial `chamber: RATIFIED` under the fork as the device backend, RTL, optional on-disk `.bil1` blobs.
 
 Existing unit tests (TC-03, TC-04, TC-05, TC-08) stay where they are; this suite adds digest oracles, it does not replace them.

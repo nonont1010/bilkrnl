@@ -1,6 +1,6 @@
 # `bil-softcpu` Device Model Outline
 
-> **Host sim implemented** (`softcpu` Rust crate / `cargo test -p softcpu`). **QEMU fork deferred** (`-device bil-softcpu` not required). **RTL deferred.** Register offsets, bitfields, and state transitions below are the live MMIO contract for the in-process host simulator; a future QEMU device must match them.
+> **Host sim implemented** (`softcpu` Rust crate / `cargo test -p softcpu`). **QEMU SoftISA device sources** in `softcpu/qemu/` (optional forked binary via `scripts/build-qemu-bil-softcpu.sh`; not required for stock verify). **RTL deferred.** Register offsets below are the live MMIO contract for the host simulator and the C SysBus device.
 
 ## Overview
 

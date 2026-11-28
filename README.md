@@ -6,7 +6,7 @@
 
 > A research kernel that boots on UEFI aarch64 (QEMU/KVM), runs untrusted code on a **6502-style soft ISA** (linear address space, no speculative semantics), then **disposes** enclave state and **ratifies** outputs in a blast chamber.
 
-This is not a micro-VM guest (Firecracker isolates a guest kernel; you still trust speculative GP CPUs). bilkrnl owns the TCB: capability poset/ratchet, deterministic stepping, and post-run distrust. Host CPUs may speculate; **enclave semantics must not**. Custom soft-CPU hardware (milestone **1C**) is deferred — see [`docs/roadmap/1c-softcpu.md`](docs/roadmap/1c-softcpu.md).
+This is not a micro-VM guest (Firecracker isolates a guest kernel; you still trust speculative GP CPUs). bilkrnl owns the TCB: capability poset/ratchet, deterministic stepping, and post-run distrust. Host CPUs may speculate; **enclave semantics must not**. Milestone **1C**: host MMIO sim + optional QEMU `-device bil-softcpu` sources (`softcpu/`, `SOFTCPU=1`); guest probe / RTL still deferred — see [`docs/roadmap/1c-softcpu.md`](docs/roadmap/1c-softcpu.md).
 
 **Docs site:** [GitHub Pages](https://nonont1010.github.io/bilkrnl/) · [User manual](docs/usermanual/README.md)
 
@@ -84,7 +84,7 @@ bilkrnl/
 ├── scripts/          — verify.sh, run-qemu.sh, render-graphics.py
 ├── docs/             — architecture, how-to, Pages site, assets
 ├── assets/logo.svg   — square brand mark
-└── docs/roadmap/     — 1C soft-CPU (deferred)
+└── docs/roadmap/     — 1C soft-CPU (host sim + optional QEMU device)
 ```
 
 ---
@@ -98,6 +98,8 @@ bilkrnl/
 | `TIMEOUT_SEC` | No | `30` / `45` | QEMU wall timeout |
 | `SERIAL_LOG` | No | `target/qemu-serial.log` | Captured serial |
 | `INTERACTIVE` | No | `0` | `1` = attach console |
+| `SOFTCPU` | No | `0` | `1` = forked QEMU + `-device bil-softcpu` |
+| `QEMU_BIN` | No | `qemu-system-aarch64` | Override QEMU binary (fork implies softcpu) |
 
 ---
 
@@ -123,7 +125,7 @@ python3 scripts/render-graphics.py   # regenerate docs/assets
 | [Testing](docs/TESTING.md) | TC matrix ↔ verify tiers |
 | [Evidence](docs/EVIDENCE.md) | What green verify proves |
 | [User manual](docs/usermanual/README.md) | Operator-oriented guide |
-| [1C roadmap](docs/roadmap/1c-softcpu.md) | Deferred soft-CPU |
+| [1C roadmap](docs/roadmap/1c-softcpu.md) | Soft-CPU host sim + optional QEMU device |
 | [bil integration](docs/roadmap/bil-integration.md) | Host-side [bsommers/bil](https://github.com/bsommers/bil) specs |
 | [enclave_chamber.bil](specs/bil/enclave_chamber.bil) | Model-checked enclave/chamber lifecycle |
 

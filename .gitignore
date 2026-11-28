@@ -1,6 +1,12 @@
 /target/
+/target/qemu-bil-src/
+/target/qemu-bil-softcpu/
+/target/qemu-*
 .venv-docs/
 **/__pycache__/
 *.py[cod]
 **/AAVMF_VARS*.fd
 *.pdb
+softcpu/qemu/test_bil_isa
+softcpu/qemu/*.o
+softcpu/qemu/.ready-for-qemu-integrate

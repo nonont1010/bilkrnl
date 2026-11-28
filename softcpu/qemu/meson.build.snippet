@@ -1,0 +1,3 @@
+# Append to QEMU hw/misc/meson.build (applied by scripts/build-qemu-bil-softcpu.sh)
+system_ss.add(when: 'CONFIG_BIL_SOFTCPU',
+              if_true: files('bil-softcpu.c', 'bil_isa.c', 'sha256.c'))

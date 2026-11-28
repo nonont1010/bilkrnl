@@ -313,3 +313,34 @@ pub fn fixture_policy_fail_program() -> (u32, Vec<u8>) {
     code[0] = 0x00;
     (entry, code)
 }
+
+/// Sealed attested-reverse workload (PASS): four sealed bytes `@0..@3` = `BIL!`,
+/// entry=4; program Outs them in reverse (`!LIB`) then weakens to Compute and Halts.
+///
+/// Bytes match `tools/bil1asm/examples/rev4_pass.bil1.ir`. Digests bind the sealed
+/// payload via `code_digest`; a consumer ratifies ExactBytes(`!LIB`).
+pub fn fixture_rev4_pass_program() -> (u32, Vec<u8>) {
+    (
+        4,
+        alloc::vec![
+            b'B', b'I', b'L', b'!', // sealed payload @0..@3
+            // ld @3; out; ld @2; out; ld @1; out; ld @0; out
+            0x03, 0x03, 0x00, 0x09, // ld @3; out
+            0x03, 0x02, 0x00, 0x09, // ld @2; out
+            0x03, 0x01, 0x00, 0x09, // ld @1; out
+            0x03, 0x00, 0x00, 0x09, // ld @0; out
+            0x0a, 0x01, // weaken Compute
+            0x00, // halt
+        ],
+    )
+}
+
+/// Negative twin: sealed `XXXX` → Out `XXXX` (not `!LIB`).
+pub fn fixture_rev4_fail_program() -> (u32, Vec<u8>) {
+    let (entry, mut code) = fixture_rev4_pass_program();
+    code[0] = b'X';
+    code[1] = b'X';
+    code[2] = b'X';
+    code[3] = b'X';
+    (entry, code)
+}

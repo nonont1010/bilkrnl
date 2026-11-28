@@ -1,28 +1,31 @@
 ---
-status: DONE — B3.3 + B3.4 + 1C host MMIO seam
-next: optional QEMU `-device bil-softcpu` fork / independent SoftISA body; more chamber workloads
+status: DONE — QEMU bil-softcpu + rev4 chamber workload on main
+next: optional independent SoftISA microarch; more chamber workloads
 depends: []
 ---
 
 # Checkpoint — bilkrnl — 2026-11-28
 
-**Status:** B3.3, B3.4, and 1C host seam green. QEMU fork / RTL deferred. Safe to `/compact`.
+**Status:** Real QEMU `-device bil-softcpu` + second chamber workload (`rev4`) green.
 
 ## Done (with evidence)
 
-- **B3.3:** `bil1asm lower foo.bil` → `bil verify --allow-bounded` first; `--skip-verify`; 31 bil1asm tests.
-- **B3.4:** `test_lowered_goldens` (ok / out_hello / add_imm) → 1A digests; verify unit tier.
-- **1C host seam:** `softcpu` MMIO sim (DEVICE.md); body still `Vm`; `parity_via_mmio_*` (8); `--only softcpu`.
-- Prior: witnesses `c7f6eb8`, B3.2 `38a09a8`, TC-16, GPL.
+- **QEMU softcpu:** `softcpu/qemu/` C SoftISA + SysBus device; `scripts/build-qemu-bil-softcpu.sh`; `SOFTCPU=1 ./scripts/run-qemu.sh`
+  - Guest probe: MAGIC @ `0x0c000000` → `blast: … via softcpu`
+  - Digests match 1A goldens for policy + rev4
+- **Workload `rev4`:** sealed `BIL!` → Out `!LIB`; golden `33140a88…`; IR + fixtures + e2e
+- Verify: `make -C softcpu/qemu test-isa`; `./scripts/verify.sh --only softcpu-qemu`
 
 ## Durable decisions
 
-- 1C *host* ≠ QEMU device. Digests via MMIO; SoftISA body remains `bilkrnl-core::isa::Vm` until fork/RTL.
-- `.bc.txt` skips verify; `.bil` needs bil (or `--skip-verify`).
-- bil dump still Rust Debug.
+- Stock boot stays interpreter; softcpu is opt-in (`SOFTCPU=1`).
+- Platform-bus base `0x0c000000` is the guest fast-path; DTB walk is backup.
+- QEMU C SoftISA is a port of `bilkrnl-core::isa` (parity via `test-isa`); not yet a separate speculative-free microarch.
 
-## Resume command
+## Resume
 
 ```bash
-cd /home/bill/src/os/bilkrnl && cargo test -p bil1asm && cargo test -p softcpu && ./scripts/verify.sh --quick
+./scripts/build-qemu-bil-softcpu.sh   # once
+SOFTCPU=1 ./scripts/run-qemu.sh
+./scripts/verify.sh --only softcpu-qemu
 ```

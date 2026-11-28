@@ -1,0 +1,45 @@
+--- a/hw/core/sysbus-fdt.c
++++ b/hw/core/sysbus-fdt.c
+@@ -35,6 +35,7 @@
+ #include "hw/platform-bus.h"
+ #include "hw/display/ramfb.h"
+ #include "hw/uefi/var-service-api.h"
++#include "hw/misc/bil_softcpu.h"
+ #include "hw/arm/fdt.h"
+ 
+ /*
+@@ -119,6 +120,33 @@ static int add_uefi_vars_node(SysBusDevice *sbdev, void *opaque)
+     return 0;
+ }
+ 
++static int add_bil_softcpu_node(SysBusDevice *sbdev, void *opaque)
++{
++    PlatformBusFDTData *data = opaque;
++    PlatformBusDevice *pbus = data->pbus;
++    const char *parent_node = data->pbus_node_name;
++    void *fdt = data->fdt;
++    uint64_t mmio_base;
++    char *nodename;
++
++    mmio_base = platform_bus_get_mmio_addr(pbus, sbdev, 0);
++    nodename = g_strdup_printf("%s/bil-softcpu@%" PRIx64, parent_node, mmio_base);
++    qemu_fdt_add_subnode(fdt, nodename);
++    qemu_fdt_setprop_string(fdt, nodename, "compatible", "bil,softcpu");
++    qemu_fdt_setprop_sized_cells(fdt, nodename, "reg",
++                                 1, mmio_base,
++                                 1, 0x10000);
++    g_free(nodename);
++    return 0;
++}
++
+ static int no_fdt_node(SysBusDevice *sbdev, void *opaque)
+ {
+     return 0;
+ }
+@@ -140,6 +168,7 @@ static const BindingEntry bindings[] = {
+     TYPE_BINDING(TYPE_ARM_SMMUV3, no_fdt_node),
+     TYPE_BINDING(TYPE_RAMFB_DEVICE, no_fdt_node),
+     TYPE_BINDING(TYPE_UEFI_VARS_SYSBUS, add_uefi_vars_node),
++    TYPE_BINDING(TYPE_BIL_SOFTCPU, add_bil_softcpu_node),
+     TYPE_BINDING("", NULL), /* last element */
+ };

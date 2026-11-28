@@ -1,0 +1,21 @@
+; rev4_fail.bil1.ir — negative twin (XXXX → Out XXXX)
+.caps   IoOutBounded
+.budget cycles=64 out=8 pages=1
+.entry  start
+
+.byte 0x58
+.byte 0x58
+.byte 0x58
+.byte 0x58
+
+start:
+    ld @3
+    out
+    ld @2
+    out
+    ld @1
+    out
+    ld @0
+    out
+    weaken Compute
+    halt
