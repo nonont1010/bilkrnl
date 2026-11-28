@@ -1,16 +1,18 @@
 ---
-status: COMPLETE — docs suite + SoftISA graphics + rot4 + independence; commit/push next
-next: optional more workload / RTL / pause
+status: COMPLETE — SoftISA docs + rot4 + graphics suite landed on main
+next: optional more workload / RTL / pause — `cd /home/bill/src/os/bilkrnl && ./scripts/verify.sh --quick`
 depends: []
 ---
 
 # Checkpoint — bilkrnl — 2026-11-28
 
-**Status:** COMPLETE for this session arc (full docs suite refresh + SoftISA graphic + rot4 + independence).
+**Status:** COMPLETE
+**Branch:** `main` @ `e9dabf2`
+**Working Tree:** clean; synced with `origin/main`
 
 ## Goal (user words)
 
-Instruction set datasheet + programmer guide; then a new chamber workload (rev4 pattern); then SoftISA-body independence (C as sole 1C body; host sim docs honest).
+Instruction set datasheet + programmer guide; then a new chamber workload (rev4 pattern); then SoftISA-body independence (C as sole 1C body; host sim docs honest); then full docs/graphics refresh, commit, and push.
 
 ## Done (with evidence)
 
@@ -20,8 +22,10 @@ Instruction set datasheet + programmer guide; then a new chamber workload (rev4 
 | **rot4** sealed left-rotate workload | `BIL1` → Out `IL1B`; marker `chamber:rot4:` |
 | rot4 golden | `24784198062f6a05cc8d2047440574f644cd1eb961784864857294aecf5b7161` |
 | SoftISA independence | C `bil_isa.c` = 1C body; Rust `softcpu` = MMIO protocol wrap of `Vm` |
+| Docs + neon-grid graphics suite | `docs/diagrams/`, `docs/assets/examples/softisa.{svg,png}`, `docs/index.html` |
+| Commit + push | `e9dabf2` on `origin/main` — *docs: SoftISA datasheet/guide, rot4 workload, and graphic suite* |
 
-**Prior (still on tree):** QEMU bil-softcpu, rev4, policy TC-16, GPL-3.0-or-later.
+**Prior (still on tree):** QEMU bil-softcpu, rev4, policy TC-16, GPL-3.0-or-later (`b0e6f8b`, `70cada2`).
 
 ## Durable decisions
 
@@ -31,6 +35,10 @@ Instruction set datasheet + programmer guide; then a new chamber workload (rev4 
 - Host Rust `softcpu` crate is **not** a SoftISA body; it wraps `Vm` for MMIO protocol tests.
 - Dual-marker greps: `chamber: RATIFIED` (space) must not match `chamber:rev4:` / `chamber:rot4:`.
 - License: **GPL-3.0-or-later**.
+
+## Failed / blocked
+
+None this arc.
 
 ## Next steps (exact; pick one)
 
