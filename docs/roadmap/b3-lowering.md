@@ -1,6 +1,6 @@
 # Phase B3 — Lowering bil → `BIL1` (stretch, design only)
 
-**Status:** Design notes only. Nothing here is implemented. Not part of V1 verify gates. No assembler exists in-tree; [`tools/bil1asm/README.md`](../../tools/bil1asm/README.md) is a sketch of a future host tool.
+**Status:** B3.0–B3.1 done; B3.2 host lowerer in `tools/bil1asm` (`lower` / `.bc.txt`). B3.3+ not in V1 verify gates.
 
 Parent roadmap: [bil-integration.md](bil-integration.md) (B0–B2 are the spec/proof tiers; B3 is the only phase that would *produce* enclave code from bil).
 
@@ -123,12 +123,12 @@ The reference case is `fixture_ok_program`: the hand-written profile program in 
 |------|-------------|------|
 | B3.0 | This doc + [`tools/bil1asm/README.md`](../../tools/bil1asm/README.md) + reference hex | docs only |
 | B3.1 | Host tool assembles a hand-written **profile IR** (text) to `BIL1`; reproduces `fixture_ok_program` byte-for-byte | **done** — `tools/bil1asm`, golden tests + `policy_pass` / `policy_fail` |
-| B3.2 | Accept bil stack bytecode for the profile subset. Prefer an upstream stable dump format over parsing `Debug` text | reject list above enforced with diagnostics |
+| B3.2 | Accept bil stack bytecode for the profile subset. Prefer an upstream stable dump format over parsing `Debug` text | **done** — `bil1asm lower` parses dump/`*.bc.txt`, reject list with diagnostics |
 | B3.3 | Range/determinism side conditions checked by running `bil verify` on the source first; refuse to lower on failure | — |
 | B3.4 | Lowered programs added as 1A golden vectors (and 1C parity vectors once 1C exists) | optional tier, skipped when `bil` is absent |
 
 ## Verify status
 
 - B3.1 (`bil1asm` assemble/dump + golden tests) runs in `scripts/verify.sh` unit tier.
-- B3.2+ lowering remains out of V1 verify until bil dump format is stable.
+- B3.2 (`bil1asm lower` + reject tests) is covered by `cargo test -p bil1asm`; still out of V1 verify until bil dump format is stable.
 - Kernel demo loads `fixture_policy_pass_program` (lockstep with `tools/bil1asm/examples/policy_pass.bil1.ir`).

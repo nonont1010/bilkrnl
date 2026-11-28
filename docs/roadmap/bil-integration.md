@@ -64,7 +64,7 @@ Encode `RatifySpec` as bil axioms; prove Reject paths for wrong exit / over-budg
 
 `bil dump-ir` / LIR → assembler emitting `BIL1` images; digests must match SoftISA runs (paves road to 1C soft-CPU with shared specs).
 
-**Status: design only. Not implemented, not in V1 verify.** Full notes: [b3-lowering.md](b3-lowering.md). Host tool sketch: [`tools/bil1asm/README.md`](../../tools/bil1asm/README.md).
+**Status: B3.0–B3.2 implemented in host tool; B3.3+ not in V1 verify.** Full notes: [b3-lowering.md](b3-lowering.md). Host tool: [`tools/bil1asm/README.md`](../../tools/bil1asm/README.md).
 
 - Only a small **BIL1 profile** of bil lowers: `u8`-bounded literals and variables, `x ± k`, `== 0` / `== k` guards, deterministic single-branch `do … od` with a `variant`, plus `bil1_out` / `bil1_weaken` intrinsics. Mul/Div/Mod, var+var arithmetic, calls, recursion, floats, strings, ADTs, quantifiers, and nondeterministic guards are rejected.
 - `bil dump-ir --level lir` (v0.8.1) prints signatures only. The usable input today is `bil vm --dump-bytecode`, which is Rust `Debug` text, so the first step is a hand-written profile IR.
@@ -73,7 +73,8 @@ Encode `RatifySpec` as bil axioms; prove Reject paths for wrong exit / over-budg
 
 - [x] B3.0 design notes + reference image hex ([`tools/bil1asm/examples/ok.bil1.txt`](../../tools/bil1asm/examples/ok.bil1.txt))
 - [x] B3.1 host assembler for profile IR reproducing `fixture_ok_program` byte-for-byte (`tools/bil1asm`) + sealed policy-gate examples
-- [ ] B3.2–B3.4 lower bil stack bytecode, `bil verify` side conditions, golden vectors
+- [x] B3.2 lower bil stack bytecode profile subset (`bil1asm lower`, reject diagnostics)
+- [ ] B3.3–B3.4 `bil verify` side conditions, golden vectors
 
 ## License note
 

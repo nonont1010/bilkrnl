@@ -1,0 +1,7 @@
+; Reject: Call to a name other than bil1_out / bil1_weaken.
+; Expect lower fail: Call { func: "helper", ... } not an intrinsic.
+
+.fn reject_call():
+  0000: PushInt(5)
+  0001: Call { func: "helper", argc: 1 }
+  0002: Return

@@ -1,0 +1,6 @@
+; Reject: PushInt outside 0..=255 (SoftISA imm8 / ACC width).
+; Expect lower fail: PushInt(300) out of u8 range.
+
+.fn reject_big_int():
+  0000: PushInt(300)
+  0001: Return

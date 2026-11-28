@@ -1,50 +1,37 @@
 ---
-status: DONE — bil MemOob/PcOob/HostEscape reachability witnesses + TC-13 witness sync
-next: optional B3.2 bil→BIL1 lowering (needs stable bil dump); 1C last
+status: DONE — B3.2 bil1asm lower + reject diagnostics on main
+next: optional B3.3 bil-verify gate or B3.4 goldens; 1C last
 depends: []
 ---
 
 # Checkpoint — bilkrnl — 2026-11-27
 
-**Status:** COMPLETE for bil reachability witnesses / Rust↔bil refinement. Safe to `/compact`.
-
-## Goal (user words)
-
-Hardened UEFI aarch64 bilkrnl; SoftISA enclaves; blast chamber; a workload whose `RATIFIED <digest>` someone else consumes.
+**Status:** B3.2 landed on main. Safe to `/compact`.
 
 ## Done (with evidence)
 
-- Killer job **A** (sealed policy gate) + B3.1 `bil1asm` @ `49bd2e1` on `origin/main`.
-- **TC-16 host ratify-gate** + **GPL-3.0-or-later** on main.
-- **Bil reachability witnesses** (Wave 3 review follow-up):
-  - `MemOobReachWitness` / `PcOobReachWitness` / `HostEscapeReachWitness` in `specs/bil/softisa_step.bil`
-  - LTL `eventually(fault == …)` **PROVED** under weak fairness (2 states each)
-  - SoftIsaStep: operand-past-end PcOob + AddImm keep-class; still **439** states VERIFIED
-  - Chamber TC-13 witnesses renamed to match Rust (`tc13_out_too_large_reject`, `tc13_cap_ceiling_reject`); verify 24/24
-  - `verify.sh` finds sibling `../../lang/bil/target/release/bil`
+- Bil reachability witnesses @ `c7f6eb8` (MemOob/PcOob/HostEscape LTL PROVED).
+- **B3.2** (parallel agents → integrated):
+  - `bil1asm lower` parses `bil vm --dump-bytecode` / `.bc.txt`
+  - Reject diagnostics: Mul, var+var, foreign Call, float, Int>255, TrapAbort
+  - Happy path → `02 4f 09 … 00` (`fixture_ok_program`)
+  - Research: `docs/roadmap/b3.2-dump-notes.md` (Debug dump; no JSON yet)
+  - Fixtures: `tools/bil1asm/examples/lower/`
+  - `cargo test -p bil1asm` → **19 passed** (after out_hello file test)
 
 ## Durable decisions
 
-- 1A SoftISA + 2C chamber; **1C deferred** until digests are boring.
-- bil host-side only; never in UEFI TCB.
-- SoftIsaStep is demonic — reachability of MemOob/PcOob/HostEscape needs separate witness systems (not `eventually` on SoftIsaStep itself).
-- Skip logo polish / 1C for now.
-- License: **GPL-3.0-or-later**.
-- Multi-account `gh`: do **not** `gh auth switch`; use `GH_TOKEN="$(gh auth token --user nonont1010)"` for this repo.
-- Next: optional B3.2 → 1C last.
+- Dump format remains Rust Debug until upstream bil adds `--format json`; prefer checked-in `.bc.txt`.
+- Live dumps with `let x = bil1_out(k)` emit StoreVar/PopVar — stripped profile fixtures are the digest source of truth.
+- B3.2 stays out of V1 verify until dump format is stable (still in `cargo test -p bil1asm` / unit tier via workspace).
+- Next: B3.3 (`bil verify` before lower) → B3.4 goldens → 1C last.
 
 ## Working-tree state
 
-- Branch: `main` (dirty: witnesses + docs + verify bil path). No secrets.
-- Docs venv: `.venv-docs`. bil: `/home/bill/src/lang/bil/target/release/bil` (or `BIL_BIN` / `/tmp/bil-clone`).
-
-## Next steps (exact)
-
-1. Optional: B3.2 bil→BIL1 lowering (wants stable bil dump format).
-2. **Not yet:** 1C soft-CPU; logo polish.
+- Branch: `main`. bil: `/home/bill/src/lang/bil/target/release/bil` (banner may say 0.7.1; sources 0.8.1).
 
 ## Resume command
 
 ```bash
-cd /home/bill/src/os/bilkrnl && git status -sb && ./scripts/verify.sh --only bil-specs
+cd /home/bill/src/os/bilkrnl && cargo test -p bil1asm && ./scripts/verify.sh --quick
 ```

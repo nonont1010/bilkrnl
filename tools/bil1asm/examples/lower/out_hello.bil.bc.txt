@@ -1,0 +1,19 @@
+=== BIL Bytecode VM Image (2 functions, 1 globals, 19 instructions, 0 ghost items erased) ===
+  .fn bil1_out(v):
+    0000: LoadVar("v")
+    0001: Return
+  .fn out_hello():
+    0000: PushInt(79)
+    0001: Call { func: "bil1_out", argc: 1 }
+    0002: StoreVar("a")
+    0003: PushInt(75)
+    0004: Call { func: "bil1_out", argc: 1 }
+    0005: StoreVar("b")
+    0006: PushInt(10)
+    0007: Call { func: "bil1_out", argc: 1 }
+    0008: PopVar("b")
+    0009: PopVar("a")
+    0010: Return
+  .global r:
+    0000: Call { func: "out_hello", argc: 0 }
+    0001: Return

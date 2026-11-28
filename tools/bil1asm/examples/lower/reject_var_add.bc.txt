@@ -1,0 +1,14 @@
+; Reject: var+var Binary(Add) — only LoadVar + literal PushInt ± is in profile.
+; Expect lower fail: Binary(Add) with two non-literal operands.
+
+.fn reject_var_add():
+  0000: PushInt(1)
+  0001: StoreVar("a")
+  0002: PushInt(2)
+  0003: StoreVar("b")
+  0004: LoadVar("a")
+  0005: LoadVar("b")
+  0006: Binary(Add)
+  0007: PopVar("b")
+  0008: PopVar("a")
+  0009: Return

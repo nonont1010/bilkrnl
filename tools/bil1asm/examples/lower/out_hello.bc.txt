@@ -1,0 +1,20 @@
+; Hand-written BIL1-profile dump (B3.2 happy path).
+; Intended SoftISA bytes (fixture_ok_program):
+;   02 4f 09 02 4b 09 02 0a 09 00
+;   = ldi 0x4f; out; ldi 0x4b; out; ldi 0x0a; out; halt
+;
+; Tool directives (not emitted by `bil vm --dump-bytecode`; accepted by bil1asm lower):
+.caps IoOutBounded
+.budget cycles=64 out=8 pages=1
+;
+; Shape: bil Debug dump without the banner / `.global` harness.
+; Intrinsic: Call { func: "bil1_out", argc: 1 } → SoftISA Out (arg already on stack).
+
+.fn out_hello():
+  0000: PushInt(79)
+  0001: Call { func: "bil1_out", argc: 1 }
+  0002: PushInt(75)
+  0003: Call { func: "bil1_out", argc: 1 }
+  0004: PushInt(10)
+  0005: Call { func: "bil1_out", argc: 1 }
+  0006: Return

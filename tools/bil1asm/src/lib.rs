@@ -1,7 +1,14 @@
-//! BIL1 profile IR assembler (B3.1).
+//! BIL1 profile IR assembler + stack-bytecode lowerer (B3.1 / B3.2).
 //!
-//! Host-only. Assembles hand-written SoftISA IR into `BytecodeImage` bytes.
+//! Host-only. Assembles hand-written SoftISA IR into `BytecodeImage` bytes,
+//! and lowers bil stack-bytecode (profile subset) via `lower`.
 //! Never linked into the UEFI kernel.
+
+mod lower;
+mod stack_bc;
+
+pub use lower::{lower_program, lower_stack_bc, LowerError};
+pub use stack_bc::{parse_stack_bc, ParseError, StackFn, StackOp, StackProgram};
 
 use std::collections::BTreeMap;
 use std::fmt;

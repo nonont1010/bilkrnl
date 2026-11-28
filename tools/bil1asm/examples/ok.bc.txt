@@ -1,0 +1,11 @@
+; ok.bc.txt — stack-bytecode form of fixture_ok_program (bil1_out intrinsics)
+.caps IoOutBounded
+.budget cycles=64 out=8 pages=1
+.fn emit
+0000: PushInt(79)
+0001: Call { func: "bil1_out", argc: 1 }
+0002: PushInt(75)
+0003: Call { func: "bil1_out", argc: 1 }
+0004: PushInt(10)
+0005: Call { func: "bil1_out", argc: 1 }
+0006: Return

@@ -1,0 +1,8 @@
+; Reject: Binary(Mul) is outside the BIL1 profile (no SoftISA mul).
+; Expect lower fail: Binary(Mul) not lowerable.
+
+.fn reject_mul():
+  0000: PushInt(3)
+  0001: PushInt(4)
+  0002: Binary(Mul)
+  0003: Return

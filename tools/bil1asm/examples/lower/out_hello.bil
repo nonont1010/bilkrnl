@@ -1,0 +1,15 @@
+// SoftISA oracle twin of fixture_ok_program (examples/ok.bil1.ir):
+//   bytes 02 4f 09 02 4b 09 02 0a 09 00
+//   (ldi 'O'; out; ldi 'K'; out; ldi '\n'; out; halt)
+//
+// bil1_out is an identity stub so `bil vm` can execute. B3.2 lower treats
+// Call { func: "bil1_out", argc: 1 } as SoftISA Out; the stub body is ignored.
+fn bil1_out(v: Int) -> Int = v
+
+fn out_hello() -> Int =
+  let a = bil1_out(79) in
+  let b = bil1_out(75) in
+  bil1_out(10)
+
+let r = out_hello()
+assert r == 10
