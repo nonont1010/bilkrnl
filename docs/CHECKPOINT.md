@@ -7,8 +7,7 @@ depends: []
 # Checkpoint — bilkrnl — 2026-11-28
 
 **Status:** COMPLETE
-**Branch:** `main` @ `e9dabf2`
-**Working Tree:** clean; synced with `origin/main`
+**Branch:** `main` (clean; synced with `origin/main`; SoftISA/rot4 feature at `e9dabf2`)
 
 ## Goal (user words)
 
