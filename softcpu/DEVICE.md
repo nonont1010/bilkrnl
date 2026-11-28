@@ -1,7 +1,6 @@
-# `bil-softcpu` QEMU Device Model Outline (Design Notes)
+# `bil-softcpu` Device Model Outline
 
-> **DESIGN NOTES ONLY — NOT IMPLEMENTED.**
-> No C, Rust, QEMU fork, or RTL implementation exists in V1. All register offsets, bitfields, and state transitions below are a stub specification for a future Milestone 1C QEMU device model (`-device bil-softcpu`).
+> **Host sim implemented** (`softcpu` Rust crate / `cargo test -p softcpu`). **QEMU fork deferred** (`-device bil-softcpu` not required). **RTL deferred.** Register offsets, bitfields, and state transitions below are the live MMIO contract for the in-process host simulator; a future QEMU device must match them.
 
 ## Overview
 
@@ -9,7 +8,7 @@
 
 ---
 
-## 1. MMIO & Config Fields (Design Note — Not Implemented)
+## 1. MMIO & Config Fields
 
 Proposed 64 KiB MMIO aperture (little-endian 32-bit/64-bit aligned accesses; unaligned or out-of-window accesses fault cleanly without host side effects):
 
@@ -92,7 +91,7 @@ QEMU device properties (`-device bil-softcpu,...`, design note):
 
 ---
 
-## 2. Load Bytecode (`BIL1`) (Design Note — Not Implemented)
+## 2. Load Bytecode (`BIL1`)
 
 Mirrors `BytecodeImage::decode` + `Vm::new` without changing kernel-facing `enclave_load`:
 
@@ -105,7 +104,7 @@ Mirrors `BytecodeImage::decode` + `Vm::new` without changing kernel-facing `encl
 
 ---
 
-## 3. Step / Run Execution (Design Note — Not Implemented)
+## 3. Step / Run Execution
 
 Mirrors `Vm::step` and `Vm::run` — direct architectural commit per instruction, no branch prediction, no speculative prefetch:
 
@@ -119,7 +118,7 @@ Mirrors `Vm::step` and `Vm::run` — direct architectural commit per instruction
 
 ---
 
-## 4. Read Result Registers (Design Note — Not Implemented)
+## 4. Read Result Registers
 
 Once `STATUS` reaches `Halted/Done` (`4`) or `Faulted` (`5`), the kernel driver reconstructs `EnclaveResult` identically to 1A:
 
@@ -133,7 +132,7 @@ The resulting `EnclaveResult` feeds `artifact_digest` and `chamber_ratify` uncha
 
 ---
 
-## 5. Reset & Zeroize (Dispose Contract) (Design Note — Not Implemented)
+## 5. Reset & Zeroize (Dispose Contract)
 
 Mirrors `Vm::zeroize` and `EnclaveSlot::dispose` — mandatory **before** `chamber_ratify`:
 
@@ -152,7 +151,7 @@ Mirrors `Vm::zeroize` and `EnclaveSlot::dispose` — mandatory **before** `chamb
 
 ---
 
-## 6. Keeping the `BIL1` load API unchanged (Design Note — Not Implemented)
+## 6. Keeping the `BIL1` load API unchanged
 
 Guest call sites keep today's signatures. `kernel/src/main.rs` still builds a `BytecodeImage` and calls `blast`; the CLI still talks to `EnclaveSlot`. No MMIO pointer, opcode, or digest layout is added to `enclave_load`.
 

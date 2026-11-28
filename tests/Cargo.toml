@@ -8,6 +8,9 @@ publish = false
 [dependencies]
 bilkrnl-core = { path = "../bilkrnl-core" }
 
+[dev-dependencies]
+bil1asm = { path = "../tools/bil1asm" }
+
 [[test]]
 name = "test_cap_poset"
 path = "unit/test_cap_poset.rs"
@@ -59,3 +62,7 @@ path = "system/test_e2e_harness.rs"
 [[test]]
 name = "test_digest_oracle"
 path = "parity/test_digest_oracle.rs"
+
+[[test]]
+name = "test_lowered_goldens"
+path = "parity/test_lowered_goldens.rs"

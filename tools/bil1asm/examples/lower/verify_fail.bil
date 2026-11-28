@@ -1,0 +1,11 @@
+// B3.3 fixture: `bil verify` must REFUTE (nonzero). Used to assert
+// `bil1asm lower` refuses to write output when the verify gate fails.
+//
+// Deliberately false postcondition — not a SoftISA profile program.
+
+fn bad() -> Int
+  ensures result == 1
+= 0
+
+let r = bad()
+assert r == 0

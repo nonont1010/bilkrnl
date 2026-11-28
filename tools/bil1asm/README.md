@@ -1,4 +1,4 @@
-# `bil1asm` — host BIL1 assembler + stack-bytecode lowerer (B3.1 / B3.2)
+# `bil1asm` — host BIL1 assembler + stack-bytecode lowerer (B3.1–B3.3)
 
 **Status:** Implemented. Workspace member `tools/bil1asm`. Host-only; never linked into the UEFI `kernel` crate. Covered by `cargo test -p bil1asm` (also via `scripts/verify.sh` unit tier).
 
@@ -7,7 +7,7 @@ Design and phasing: [`docs/roadmap/b3-lowering.md`](../../docs/roadmap/b3-loweri
 ## Hard boundary
 
 - Host-only. May depend on `bilkrnl-core` (host target); the kernel never depends on this tool.
-- Calls `bil` as a **subprocess** only for `lower` on `.bil` inputs (`BIL_BIN`, `PATH`, or a sibling `lang/bil` release binary). `.bc.txt` works with no bil install.
+- Calls `bil` as a **subprocess** for `lower` on `.bil` inputs (`BIL_BIN`, `PATH`, or a sibling `lang/bil` release binary): first `bil verify`, then `bil vm --dump-bytecode`. `.bc.txt` works with no bil install and skips verify.
 - Never emits opcodes `0xE0..=0xEF`.
 - Output images get no extra trust. They go through the same load → blast → dispose → `chamber_ratify` path as hand-written images.
 
@@ -16,11 +16,11 @@ Design and phasing: [`docs/roadmap/b3-lowering.md`](../../docs/roadmap/b3-loweri
 ```text
 bil1asm assemble <prog.bil1.ir>       -o <out.bil1>
 bil1asm dump     <img.bil1>
-bil1asm lower    <prog.bc.txt|.bil>   -o <out.bil1>
+bil1asm lower    <prog.bc.txt|.bil>   -o <out.bil1> [--skip-verify] [--allow-bounded]
 bil1asm --help
 ```
 
-Exit codes: `0` ok, `1` assemble/lower/IO error, `2` usage.
+Exit codes: `0` ok, `1` assemble/lower/verify/IO error, `2` usage.
 
 ```bash
 cargo run -p bil1asm -- lower tools/bil1asm/examples/ok.bc.txt -o /tmp/ok.bil1
@@ -65,6 +65,23 @@ Input is `bil vm --dump-bytecode` Debug text, or a checked-in `.bc.txt` dialect 
 
 **Rejects (diagnostic substring):** `Binary(Mul|Div|Mod)`, var+var arith, `Call` except the two intrinsics, floats/strings/lists/structs/`Match`/`Quantifier`, nondeterministic `GuardedSelect`, `GuardedLoop` (B3.2 subset), `TrapAbort`, `Int` outside `0..=255`.
 
+## Verify gate (B3.3)
+
+For `.bil` inputs, `lower` runs **`bil verify <file> --allow-bounded`** before `dump-bytecode` / lowering. Nonzero verify (or missing `bil`) → exit `1`, diagnostic prefixed `verify:` / `bil:`, **no** `-o` write.
+
+| Flag | Effect |
+|------|--------|
+| *(default)* | Pass `--allow-bounded` to `bil verify` so bounded proofs do not fail the gate |
+| `--allow-bounded` | Explicit; same as default |
+| `--skip-verify` | Escape hatch: skip the verify gate. Still needs `bil` for `vm --dump-bytecode` on `.bil` (missing bil is **not** enough — use `.bc.txt` offline) |
+
+`.bc.txt` inputs never run verify (no source).
+
+```bash
+cargo run -p bil1asm -- lower tools/bil1asm/examples/lower/out_hello.bil -o /tmp/out_hello.bil1
+cargo run -p bil1asm -- lower tools/bil1asm/examples/lower/verify_fail.bil -o /tmp/x.bil1  # exits 1, no write
+```
+
 ## Examples
 
 | File | Role |
@@ -86,3 +103,5 @@ cargo run -p bil1asm -- dump /tmp/policy_pass.bil1
 - [x] B3.1: `policy_pass` / `policy_fail` IR match `bilkrnl_core::isa` fixtures
 - [x] B3.2: `lower ok.bc.txt` matches the same golden code bytes
 - [x] B3.2: ≥4 reject cases with clear diagnostics
+- [x] B3.3: `.bil` lower runs `bil verify --allow-bounded` first; refuse on failure / missing bil
+- [x] B3.3: `.bc.txt` lower unchanged; `--skip-verify` escape hatch

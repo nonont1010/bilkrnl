@@ -28,6 +28,7 @@ dependencies = [
 name = "bilkrnl-tests"
 version = "0.1.0"
 dependencies = [
+ "bil1asm",
  "bilkrnl-core",
 ]
 
@@ -156,6 +157,13 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
+]
+
+[[package]]
+name = "softcpu"
+version = "0.1.0"
+dependencies = [
+ "bilkrnl-core",
 ]
 
 [[package]]

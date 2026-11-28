@@ -29,7 +29,10 @@ run_unit() {
   cargo test -p bil1asm -q
   cargo test -p bilkrnl-tests --test test_cap_poset --test test_budget \
     --test test_outbuf --test test_linear_as --test test_isa_faults \
-    --test test_single_enclave --test test_chamber --test test_digest_oracle -q
+    --test test_single_enclave --test test_chamber --test test_digest_oracle \
+    --test test_lowered_goldens -q
+  # 1C host MMIO soft-CPU seam (always; no QEMU fork required).
+  cargo test -p softcpu -q
 }
 
 run_security() {
@@ -225,8 +228,12 @@ case "${ONLY}" in
   bil-specs)
     run_bil_specs
     ;;
+  softcpu)
+    cargo test -p softcpu -q
+    pass "softcpu host MMIO parity"
+    ;;
   *)
-    echo "usage: verify.sh [--quick] | [--only boot|unit-cap|unit-isa|integration-enclave|chamber|ratify-gate|docs|bil-specs]" >&2
+    echo "usage: verify.sh [--quick] | [--only boot|unit-cap|unit-isa|integration-enclave|chamber|ratify-gate|docs|bil-specs|softcpu]" >&2
     exit 2
     ;;
 esac

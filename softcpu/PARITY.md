@@ -1,9 +1,8 @@
-# 1A ↔ 1C Digest Parity Fixture Plan (Design Notes)
+# 1A ↔ 1C Digest Parity Fixture Plan
 
-> **DESIGN NOTES ONLY — NOT IMPLEMENTED.**
-> No Rust tests, fixture blobs, QEMU device, or RTL are added by this file. `scripts/verify.sh` does not run a soft-CPU and does not require one. The 1A interpreter (`bilkrnl-core::isa::Vm`) is the oracle and the kernel fallback.
+> **1A oracle:** `tests/parity/test_digest_oracle.rs` (unchanged). **1C host sim:** `cargo test -p softcpu` (`parity_via_mmio_*`) rebuilds `EnclaveResult` from MMIO and matches the goldens below. **QEMU device / RTL:** still deferred; `scripts/verify.sh` does not require a forked QEMU. The 1A interpreter remains the kernel fallback.
 
-This plan is how a future Milestone 1C `bil-softcpu` proves it matches the in-kernel interpreter on the three blast-chamber digests. It does not relax the contracts in [`README.md`](./README.md) and [`docs/roadmap/1c-softcpu.md`](../docs/roadmap/1c-softcpu.md): same `BIL1` image, same opcode map (including `0xE0..=0xEF`), same `EnclaveResult` framing, same dispose-then-`chamber_ratify` order.
+This plan is how `bil-softcpu` proves it matches the in-kernel interpreter on the three blast-chamber digests. It does not relax the contracts in [`README.md`](./README.md) and [`docs/roadmap/1c-softcpu.md`](../docs/roadmap/1c-softcpu.md): same `BIL1` image, same opcode map (including `0xE0..=0xEF`), same `EnclaveResult` framing, same dispose-then-`chamber_ratify` order.
 
 ## What is compared
 
@@ -116,26 +115,24 @@ Maps to `isa::fixture_policy_fail_program` / `policy_fail.bil1.ir`. Candidate `0
 - `out_digest` `4f8e9e45f8a9e1843b81eaf3bdf52a6b778d415d23bf985774a9d34a43f69bd5`
 - `artifact_digest` `8bc9a3a5142a177e906ee7acaec3efe6c4ec7686627503b0114fa1b0b8e3dc1e`
 
+### B3.4 lowered (1A goldens from `bil1asm lower`)
+
+Produced by `bil1asm::lower_stack_bc` from stack-bytecode `.bc.txt` (no `bil` binary). Enforced by `tests/parity/test_lowered_goldens.rs` (`Vm::run` + `blast`). Once 1C exists, these rows are extra parity vectors with no change to 1C itself.
+
+| Source | SoftISA code | Expect | Digests |
+| :--- | :--- | :--- | :--- |
+| `tools/bil1asm/examples/ok.bc.txt` | `02 4f 09 02 4b 09 02 0a 09 00` | Halt, `cycles=7`, `out=OK\n` | same as **`halt`** above (`code` `0fe5a198…`, `out` `a12b7cb4…`, `artifact` `25351c26…`) |
+| `tools/bil1asm/examples/lower/out_hello.bc.txt` | same | same | same as **`halt`** |
+| `tools/bil1asm/examples/lower/add_imm.bc.txt` | `02 0a 04 0b 00 03 0b 00 05 05 00` | Halt, `cycles=5`, empty `out`, caps Compute | `code_digest` `a98f13c3b49c2fb4b25262047c4b4505ed1269066896680315f628c96005bb3d` · `out_digest` empty SHA-256 · `artifact_digest` `1dbe7975a1e666884e665f45d2346b3c66a6d4a7ebb6dc47dc618c26e8bdc560` |
+
 ## `tests/` layout
 
 **Now exists (1A-only oracle):** `tests/parity/test_digest_oracle.rs`, wired in `tests/Cargo.toml` as `test_digest_oracle` and run from `scripts/verify.sh` unit tier. It runs the six classic fixtures plus `policy_pass` / `policy_fail` through `Vm::run` and `blast` (after `BIL1` encode/decode) and asserts digests against the hex in this file. It needs no 1C device and no QEMU. Run: `cargo test -p bilkrnl-tests --test test_digest_oracle`.
 
-Still future (1C): the opt-in device suite below. Do not wire it into `scripts/verify.sh` until a device exists; V1 must keep passing with the interpreter only.
+**B3.4 lowered goldens:** `tests/parity/test_lowered_goldens.rs` (`test_lowered_goldens`), also unit-tier. Lowers the `.bc.txt` sources above via `bil1asm` and pins digests to this section. Run: `cargo test -p bilkrnl-tests --test test_lowered_goldens`.
 
-```text
-tests/parity/                      # future crate or module; absent in V1
-  fixtures/
-    halt.bil1                      # raw BIL1 bytes for the cases above
-    budget_exceed.bil1
-    host_escape_e0.bil1
-    out_fill_ok.bil1
-    out_fill_overflow.bil1
-    mem_oob.bil1
-    expected.json                  # exit tag, fault detail, cycles, out hex, three digests
-  parity_1a.rs                     # decode fixture → Vm::run → assert expected.json
-  parity_1c.rs                     # same bytes via bil-softcpu MMIO; skip if MAGIC probe fails
-```
+**1C host MMIO sim (landed):** `softcpu/tests/parity_via_mmio.rs` — `parity_via_mmio_*` for the six classic fixtures. Always run via `cargo test -p softcpu` / `scripts/verify.sh` unit tier (`--only softcpu`). Execution body is still `isa::Vm` behind MMIO (honest until a SoftISA fork).
 
-`parity_1a.rs` is superseded by `test_digest_oracle.rs` and must keep agreeing with the hex in this file. `parity_1c.rs` stays skipped while the device is absent, which is the fallback path. Existing unit tests (TC-03, TC-04, TC-05, TC-08) stay where they are; this suite adds digest oracles, it does not replace them.
+Still future (QEMU device / RTL): guest probe of real `-device bil-softcpu`, serial `chamber: RATIFIED` under forked QEMU, and optional on-disk `.bil1` fixture blobs.
 
-Host check, later: `sha256(artifact_bytes(result))` from 1A equals the same call on the `EnclaveResult` rebuilt from `EXIT_KIND`, `CYCLES_*`, `OUT_DATA`, `CODE_DIGEST`, and `OUT_DIGEST`. QEMU serial `chamber: RATIFIED <64-hex>` for the `halt` fixture must equal that `artifact_digest` under both backends.
+Existing unit tests (TC-03, TC-04, TC-05, TC-08) stay where they are; this suite adds digest oracles, it does not replace them.

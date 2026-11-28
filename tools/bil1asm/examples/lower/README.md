@@ -30,11 +30,15 @@ bil vm tools/bil1asm/examples/lower/out_hello.bil --dump-bytecode   # capture li
 
 | File | Expect |
 |------|--------|
-| [`out_hello.bc.txt`](out_hello.bc.txt) | **lower OK** → SoftISA `02 4f 09 02 4b 09 02 0a 09 00` |
-| [`out_hello.bil`](out_hello.bil) | bil source (identity stub `bil1_out`); `bil check` / `bil vm` OK |
+| [`out_hello.bc.txt`](out_hello.bc.txt) | **lower OK** → SoftISA `02 4f 09 02 4b 09 02 0a 09 00` (halt digests: code `0fe5a198…`, artifact `25351c26…`) |
+| [`add_imm.bc.txt`](add_imm.bc.txt) | **lower OK** → `02 0a 04 0b 00 03 0b 00 05 05 00`; code `a98f13c3…`, artifact `1dbe7975…` |
+| [`out_hello.bil`](out_hello.bil) | bil source (identity stub `bil1_out`); `bil check` / `bil verify` / `bil vm` OK; B3.3 gate pass |
+| [`verify_fail.bil`](verify_fail.bil) | B3.3: `bil verify` REFUTED → `bil1asm lower` exit 1, no `-o` write |
 | [`out_hello.bil.bc.txt`](out_hello.bil.bc.txt) | Live dump (stub + `StoreVar`/`PopVar` + `.global`); lowers with extra stores — prefer stripped `out_hello.bc.txt` for digests |
 | [`reject_mul.bc.txt`](reject_mul.bc.txt) | **reject** — `Binary(Mul)` |
 | [`reject_var_add.bc.txt`](reject_var_add.bc.txt) | **reject** — var+var `Binary(Add)` |
 | [`reject_call.bc.txt`](reject_call.bc.txt) | **reject** — foreign `Call` |
 | [`reject_float.bc.txt`](reject_float.bc.txt) | **reject** — `PushFloat` |
 | [`reject_big_int.bc.txt`](reject_big_int.bc.txt) | **reject** — `PushInt(300)` |
+
+B3.4 1A goldens: `cargo test -p bilkrnl-tests --test test_lowered_goldens` (also `ok.bc.txt` → same halt digests). Full table: [`softcpu/PARITY.md`](../../../../softcpu/PARITY.md) §B3.4.

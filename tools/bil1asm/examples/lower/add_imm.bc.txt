@@ -1,0 +1,11 @@
+; add_imm.bc.txt — LoadVar + Binary(Add) literal → SoftISA AddImm with a slot
+; SoftISA: ldi 10; st @11; ld @11; addi 5; halt
+; Caps default Compute (no bil1_out). Budget defaults cycles=64 out=8 pages=1.
+.fn prog
+0000: PushInt(10)
+0001: StoreVar("a")
+0002: LoadVar("a")
+0003: PushInt(5)
+0004: Binary(Add)
+0005: PopVar("a")
+0006: Return

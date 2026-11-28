@@ -3,10 +3,12 @@
 use std::env;
 use std::fs;
 use std::io::{self, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Command, ExitCode};
 
-use bil1asm::{assemble, disassemble, lower_stack_bc};
+use bil1asm::{
+    assemble, disassemble, find_bil_bin, is_bil_source, lower_stack_bc, run_bil_verify,
+};
 use bilkrnl_core::image::BytecodeImage;
 
 fn usage() -> ! {
@@ -14,7 +16,7 @@ fn usage() -> ! {
         "usage:\n  \
          bil1asm assemble <prog.bil1.ir> -o <out.bil1>\n  \
          bil1asm dump <img.bil1>\n  \
-         bil1asm lower <prog.bc.txt|.bil> -o <out.bil1>\n  \
+         bil1asm lower <prog.bc.txt|.bil> -o <out.bil1> [--skip-verify] [--allow-bounded]\n  \
          bil1asm --help"
     );
     std::process::exit(2);
@@ -118,6 +120,9 @@ fn cmd_dump(args: &[String]) -> ExitCode {
 fn cmd_lower(args: &[String]) -> ExitCode {
     let mut input: Option<&str> = None;
     let mut output: Option<&str> = None;
+    let mut skip_verify = false;
+    // Default: forward --allow-bounded so bounded proofs do not fail the gate.
+    let mut allow_bounded = true;
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
@@ -129,6 +134,8 @@ fn cmd_lower(args: &[String]) -> ExitCode {
                 }
                 output = Some(args[i].as_str());
             }
+            "--skip-verify" => skip_verify = true,
+            "--allow-bounded" => allow_bounded = true,
             s if !s.starts_with('-') => {
                 if input.is_some() {
                     eprintln!("error: unexpected argument '{s}'");
@@ -144,11 +151,22 @@ fn cmd_lower(args: &[String]) -> ExitCode {
         i += 1;
     }
     let (Some(input), Some(output)) = (input, output) else {
-        eprintln!("error: lower needs <prog.bc.txt|.bil> -o <out.bil1>");
+        eprintln!(
+            "error: lower needs <prog.bc.txt|.bil> -o <out.bil1> [--skip-verify] [--allow-bounded]"
+        );
         return ExitCode::from(2);
     };
 
-    let bc_text = match load_stack_bc(Path::new(input)) {
+    let input_path = Path::new(input);
+    // B3.3: `.bil` sources must pass `bil verify` before dump-bytecode / lower.
+    if is_bil_source(input_path) && !skip_verify {
+        if let Err(e) = run_bil_verify(input_path, allow_bounded) {
+            eprintln!("{e}");
+            return ExitCode::from(1);
+        }
+    }
+
+    let bc_text = match load_stack_bc(input_path) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("error: {e}");
@@ -172,24 +190,19 @@ fn cmd_lower(args: &[String]) -> ExitCode {
 
 /// Load `.bc.txt` directly, or shell out to `bil vm --dump-bytecode` for `.bil`.
 fn load_stack_bc(path: &Path) -> Result<String, String> {
-    let ext = path
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_ascii_lowercase();
-    if ext == "bil" {
-        let bil = find_bil_bin()?;
+    if is_bil_source(path) {
+        let bil = find_bil_bin().map_err(|e| format!("bil: {e}"))?;
         let out = Command::new(&bil)
             .arg("vm")
             .arg(path)
             .arg("--dump-bytecode")
             .output()
-            .map_err(|e| format!("spawning bil ({}): {e}", bil.display()))?;
+            .map_err(|e| format!("bil: spawning bil ({}): {e}", bil.display()))?;
         if !out.status.success() {
             let stderr = String::from_utf8_lossy(&out.stderr);
             let stdout = String::from_utf8_lossy(&out.stdout);
             return Err(format!(
-                "bil vm --dump-bytecode failed ({}):\n{stderr}{stdout}",
+                "bil: bil vm --dump-bytecode failed ({}):\n{stderr}{stdout}",
                 out.status
             ));
         }
@@ -198,41 +211,6 @@ fn load_stack_bc(path: &Path) -> Result<String, String> {
     } else {
         fs::read_to_string(path).map_err(|e| format!("reading {}: {e}", path.display()))
     }
-}
-
-fn find_bil_bin() -> Result<PathBuf, String> {
-    if let Ok(p) = env::var("BIL_BIN") {
-        let pb = PathBuf::from(&p);
-        if pb.is_file() {
-            return Ok(pb);
-        }
-        return Err(format!("BIL_BIN={p} is not a file"));
-    }
-    // PATH lookup.
-    if let Ok(out) = Command::new("which").arg("bil").output() {
-        if out.status.success() {
-            let p = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            if !p.is_empty() {
-                return Ok(PathBuf::from(p));
-            }
-        }
-    }
-    // Relative fallbacks from tools/bil1asm (repo layouts: sibling lang/bil).
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let candidates = [
-        manifest_dir.join("../../lang/bil/target/release/bil"),
-        manifest_dir.join("../../../lang/bil/target/release/bil"),
-        manifest_dir.join("../../../../lang/bil/target/release/bil"),
-    ];
-    for c in &candidates {
-        if c.is_file() {
-            return Ok(c.clone());
-        }
-    }
-    Err(
-        "bil binary not found (set BIL_BIN, install bil on PATH, or use a .bc.txt input)"
-            .into(),
-    )
 }
 
 fn write_new(path: &Path, bytes: &[u8]) -> io::Result<()> {

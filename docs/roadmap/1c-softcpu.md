@@ -1,12 +1,12 @@
-# Milestone 1C — Custom soft-CPU (deferred)
+# Milestone 1C — Custom soft-CPU
 
-**Status:** Not in V1 verify gates. Interpreter path (1A) is authoritative until this lands.
+**Status:** Host MMIO seam landed (`softcpu` crate). QEMU device fork and RTL remain deferred. Interpreter path (1A) is still the UEFI kernel body.
 
-**Spike notes (design only, not implemented):** [`softcpu/README.md`](../../softcpu/README.md), [`softcpu/DEVICE.md`](../../softcpu/DEVICE.md), [`softcpu/PARITY.md`](../../softcpu/PARITY.md), [`softcpu/qemu-device.md`](../../softcpu/qemu-device.md), and the non-compiled sketch [`softcpu/include/bil_softcpu.h`](../../softcpu/include/bil_softcpu.h). `scripts/verify.sh` still only checks that this roadmap file exists.
+**Notes:** [`softcpu/README.md`](../../softcpu/README.md), [`softcpu/DEVICE.md`](../../softcpu/DEVICE.md), [`softcpu/PARITY.md`](../../softcpu/PARITY.md), [`softcpu/qemu-device.md`](../../softcpu/qemu-device.md), and the non-compiled sketch [`softcpu/include/bil_softcpu.h`](../../softcpu/include/bil_softcpu.h).
 
 ## Goal
 
-Replace the in-kernel SoftISA interpreter body with a QEMU device model (and later FPGA/RTL) that executes the same `BytecodeImage` (`BIL1`) with identical `EnclaveResult` digests.
+Replace the in-kernel SoftISA interpreter body with a QEMU device model (and later FPGA/RTL) that executes the same `BytecodeImage` (`BIL1`) with identical `EnclaveResult` digests. Host-side first step: an in-process MMIO simulator that speaks the same register protocol.
 
 ## Non-negotiable contracts (must stay byte-identical)
 
@@ -18,20 +18,22 @@ Replace the in-kernel SoftISA interpreter body with a QEMU device model (and lat
 
 ## Acceptance
 
-1. Fixture suite under `tests/` produces the same `code_digest`, `out_digest`, and `artifact_digest` on 1A interpreter and 1C soft-CPU.
-2. QEMU invocation gains a soft-CPU device (e.g. `-device bil-softcpu`) without changing enclave load APIs.
-3. Host aarch64 speculative execution remains irrelevant to enclave semantics.
+1. [x] **Host seam:** Fixture suite produces the same `code_digest`, `out_digest`, and `artifact_digest` via MMIO (`parity_via_mmio_*` in `softcpu`) as the 1A oracle (`test_digest_oracle`).
+2. [ ] QEMU invocation gains a soft-CPU device (e.g. `-device bil-softcpu`) without changing enclave load APIs.
+3. [x] Host aarch64 speculative execution remains irrelevant to enclave semantics (host sim / future device; kernel still uses SoftISA `Vm`).
+4. [x] `cargo test -p softcpu` wired into `scripts/verify.sh` (unit tier + `--only softcpu`); no skip when present.
+5. [ ] FPGA / RTL backend (out of tree OK).
 
-## Suggested layout (future)
+## Layout
 
 ```
-softcpu/           # notes + include/bil_softcpu.h (not compiled) — no device binary
+softcpu/           # host Rust MMIO sim + notes + include/bil_softcpu.h (not compiled)
 rtl/               # optional HDL — out of tree OK
 docs/roadmap/1c-softcpu.md  # this file
 ```
 
-## Explicitly out of V1
+## Explicitly still deferred
 
 - No RTL in-tree
 - No QEMU fork submodule required to pass `scripts/verify.sh`
-- Kernel continues to ship the software interpreter as fallback
+- Kernel continues to ship the software interpreter as fallback / EFI path
