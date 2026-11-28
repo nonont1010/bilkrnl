@@ -47,13 +47,14 @@ Prove alignment with Rust unit tests TC-03..08.
 - [x] `bil check` + `bil model-check` pass (70 states pre-refine; 439 after refine)
 - [x] Wire `softisa_step.bil` into `scripts/verify.sh` `run_bil_specs`
 - [x] Refine abstraction (pc 0..3, acc 0/1, `pages_touched` vs `max_mem_pages=1`; fetch/Jmp/Jz → `FaultPcOob`, Load/Store past page 0 → `FaultMemOob`; TC-05/TC-07 in header)
+- [x] Reachability witnesses: `MemOobReachWitness` / `PcOobReachWitness` / `HostEscapeReachWitness` with LTL `eventually(fault == …)`; operand-past-end PcOob on SoftIsaStep
 
 ### Phase B2 — Chamber FOL
 
 Encode `RatifySpec` as bil axioms; prove Reject paths for wrong exit / over-budget / cap ceiling (TC-13).
 
 - [x] [`specs/bil/chamber_ratify.bil`](../../specs/bil/chamber_ratify.bil): one pure `fn` + `ensures` per `ChamberReject` (ExitNotAllowed → CyclesOverBudget → OutTooLarge → CapCeilingViolated → OutPredicateFailed), `chamber_ratify` check order, abstract `artifact_digest` (Ratified only)
-- [x] TC-13 witnesses: `tc13_ratify_ok`, `tc13_wrong_out_reject`, `tc13_wrong_exit_reject`, `tc13_cycles_over_reject`; axiom witnesses for OutTooLarge / CapCeilingViolated
+- [x] TC-13 witnesses: `tc13_ratify_ok`, `tc13_wrong_out_reject`, `tc13_wrong_exit_reject`, `tc13_cycles_over_reject`, `tc13_out_too_large_reject`, `tc13_cap_ceiling_reject`
 - [x] `system RatifyChamber` (bounded adversarial inputs) model-checks reject ordering + digest-only-on-Ratified
 - [x] `bil check` + `bil verify --allow-bounded` (24/24 z3-proved) + `bil model-check` pass
 - [x] Add `chamber_ratify.bil` to the `bil-specs` gate in `scripts/verify.sh`

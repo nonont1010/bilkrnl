@@ -5,11 +5,12 @@
 // Abstraction (bounded; NOT the 64 KiB memory):
 //   * pc    : Int 0..pc_lim, pc_lim = 3 (3 code/mem cells). pc == pc_lim means "next fetch is
 //             past the end" -> read_u8 PcOob (isa.rs fetch bound check). Multi-byte ops are
-//             abstracted as pc := pc + 1. Jmp/Jz targets are abstracted to {in-range -> pc := 0,
-//             out-of-range -> FaultPcOob}. Pc after fault is not part of EnclaveResult
-//             (Rust may advance pc on fetch before a later bound check — unobservable).
+//             abstracted as pc := pc + 1 (operand-past-end at pc==pc_lim-1 is a separate PcOob
+//             transition). Jmp/Jz targets are abstracted to {in-range -> pc := 0,
+//             out-of-range -> FaultPcOob}. pc is not observable after fault (EnclaveResult
+//             omits it; Rust may advance pc on fetch before a later bound check).
 //   * acc   : Int 0..1 (zero / non-zero). LoadImm/Load pick either; Add/SubImm may flip
-//             the class (imm=0 or 1+1 can keep it); Jz branches on acc == 0.
+//             the class or keep it (imm=0, or 1+1); Jz branches on acc == 0.
 //   * mem   : ghost pages_touched 0..max_mem_pages with max_mem_pages = 1. Load/Store to page 0
 //             sets pages_touched := 1; touching page 1 would exceed the budget -> FaultMemOob
 //             (BudgetAccount::note_addr error mapped to MemOob; pages_touched is not bumped).
@@ -38,23 +39,29 @@
 //       PagesMonotonic         prev_pages <= pages_touched (touched pages never shrink)
 //       MemOobNoPush           FaultMemOob => pages_touched <= max_mem_pages (access rejected,
 //                              no page bumped beyond the budget)
-//       MemOobReachable        witness cell: MemOob exits are produced only by Load/Store to
-//                              the unmapped page (see transitions)
 //   TC-07 (illegal op / fault typing; PcOob, tests/unit/test_isa_faults.rs)
 //       FaultTyped             ExitFault <=> fault != FaultNone (budget/halt carry no fault)
 //       TerminalExitCycles     Halt/Fault exits happen only after a successful charge_cycle
 //       PcInRange              0 <= pc <= pc_lim (pc never leaves the abstract code window)
 //       PcOobFrozenPc          FaultPcOob => pc <= pc_lim (faulting fetch/jump never commits
-//                              an out-of-window pc); fetch-past-end and Jmp/Jz OOB both land here
+//                              an out-of-window pc); fetch-past-end, operand-past-end, and
+//                              Jmp/Jz OOB all land here
 //       AccBool                acc is 0 or 1 (abstract zero / non-zero)
 //   TC-08 (no host escape, tests/security/test_no_host_escape.rs)
 //       HostNeverTouched       host_touched == false always (B1 ghost invariant)
 //       EscapeFaultsClosed     host-escape fault => out_len/caps/acc/pages unchanged vs.
 //                              pre-state, and host_touched stays false (never set true on
 //                              0xE0..=0xEF)
+//
 //   TC-09 (cap poset ratchet, tests/unit/test_cap_poset.rs)
 //       CapsOnlyWeaken         rank(caps) <= rank(prev_caps) and <= rank(caps_ceiling)
 //       (+ pure fn theorems weaken_* below, same as enclave_chamber.bil)
+//
+// Reachability witnesses (separate systems below SoftIsaStep): SoftIsaStep is demonic —
+// Halt can fire before MemOob/PcOob/HostEscape, so `eventually` those faults on SoftIsaStep
+// itself would fail. Compact witness systems force each fault path and prove
+// `eventually(fault == …)` under weak fairness, so the refinement cannot pass merely
+// because those transitions are dead.
 
 type CapLevel = CapNone | CapCompute | CapIoOut
 type ExitKind = ExitNone | ExitHalt | ExitBudget | ExitFault
@@ -165,13 +172,16 @@ system SoftIsaStep {
       prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
       pc := pc + 1, acc := 1
 
-  // ---- AddImm / SubImm (abstract: toggles zero/non-zero) ----
+  // ---- AddImm / SubImm (abstract: may flip or keep zero/non-zero class) ----
   [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim && acc == 0 ->
       prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
       pc := pc + 1, acc := 1
   [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim && acc == 1 ->
       prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
       pc := pc + 1, acc := 0
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      pc := pc + 1
 
   // ---- Load (02) page 0: maps page 0, acc := 0 | 1 ----
   [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
@@ -190,6 +200,11 @@ system SoftIsaStep {
   [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
       prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
       exit_kind := ExitFault, fault := FaultMemOob
+
+  // ---- Multi-byte op at last cell (pc == pc_lim-1): operand fetch PcOob; pc unchanged ----
+  [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc == pc_lim - 1 ->
+      prev_cycles := cycles, cycles := cycles + 1, prev_caps := caps, prev_pages := pages_touched,
+      exit_kind := ExitFault, fault := FaultPcOob
 
   // ---- Jmp (abstract): in-range target -> pc := 0 ----
   [] exit_kind == ExitNone && cycles < max_cycles && caps != CapNone && pc < pc_lim ->
@@ -259,6 +274,70 @@ system SoftIsaStep {
       exit_kind := ExitFault, fault := FaultHostEscape
 
   // ---- Terminal stutter ----
+  [] exit_kind != ExitNone -> exit_kind := exit_kind
+}
+
+// ---------------------------------------------------------------------------
+// Reachability witnesses (TC-05 / TC-07 / TC-08). Each system has exactly one
+// live fault transition plus terminal stutter, so every fair path hits the fault.
+// ---------------------------------------------------------------------------
+
+// MemOobReachable: Load/Store past the mapped page (TC-05 tc05_store_oob_fault).
+system MemOobReachWitness {
+  state max_cycles: Int = 3
+  state max_mem_pages: Int = 1
+  state cycles: Int = 0
+  state pages_touched: Int = 0
+  state exit_kind: ExitKind = ExitNone
+  state fault: FaultKind = FaultNone
+
+  invariant MemWithinMax: pages_touched >= 0 && pages_touched <= max_mem_pages
+  invariant MemOobNoPush: fault == FaultMemOob => pages_touched <= max_mem_pages
+  invariant FaultTyped: (exit_kind == ExitFault => fault != FaultNone) && (exit_kind != ExitFault => fault == FaultNone)
+  temporal ReachesMemOob: eventually(fault == FaultMemOob)
+
+  transition
+     exit_kind == ExitNone && cycles < max_cycles ->
+       cycles := cycles + 1, exit_kind := ExitFault, fault := FaultMemOob
+  [] exit_kind != ExitNone -> exit_kind := exit_kind
+}
+
+// PcOobReachable: fetch past end of code window (TC-07); pc stays at pc_lim.
+system PcOobReachWitness {
+  state max_cycles: Int = 3
+  state pc_lim: Int = 3
+  state cycles: Int = 0
+  state pc: Int = 3
+  state exit_kind: ExitKind = ExitNone
+  state fault: FaultKind = FaultNone
+
+  invariant PcInRange: pc >= 0 && pc <= pc_lim
+  invariant PcOobFrozenPc: fault == FaultPcOob => pc <= pc_lim
+  invariant FaultTyped: (exit_kind == ExitFault => fault != FaultNone) && (exit_kind != ExitFault => fault == FaultNone)
+  temporal ReachesPcOob: eventually(fault == FaultPcOob)
+
+  transition
+     exit_kind == ExitNone && cycles < max_cycles && pc == pc_lim ->
+       cycles := cycles + 1, exit_kind := ExitFault, fault := FaultPcOob
+  [] exit_kind != ExitNone -> exit_kind := exit_kind
+}
+
+// HostEscapeReachable: 0xE0..=0xEF fault with host_touched staying false (TC-08).
+system HostEscapeReachWitness {
+  state max_cycles: Int = 3
+  state cycles: Int = 0
+  state host_touched: Bool = false
+  state exit_kind: ExitKind = ExitNone
+  state fault: FaultKind = FaultNone
+
+  invariant HostNeverTouched: host_touched == false
+  invariant EscapeKeepsHostClean: fault == FaultHostEscape => host_touched == false
+  invariant FaultTyped: (exit_kind == ExitFault => fault != FaultNone) && (exit_kind != ExitFault => fault == FaultNone)
+  temporal ReachesHostEscape: eventually(fault == FaultHostEscape)
+
+  transition
+     exit_kind == ExitNone && cycles < max_cycles ->
+       cycles := cycles + 1, exit_kind := ExitFault, fault := FaultHostEscape
   [] exit_kind != ExitNone -> exit_kind := exit_kind
 }
 

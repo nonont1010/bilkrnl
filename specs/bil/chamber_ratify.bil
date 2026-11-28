@@ -176,13 +176,14 @@ fn tc13_cycles_over_reject() -> Decision
 =
   chamber_ratify(true, 5, 1, 3, 8, 2, 2, true)
 
-// Axiom witnesses (no Rust unit test yet): OutTooLarge and CapCeilingViolated.
-fn axiom_out_too_large_reject() -> Decision
+// tc13_out_too_large_reject: out.len=3 ("OK\n"), max_out_bytes=1 -> OutTooLarge.
+fn tc13_out_too_large_reject() -> Decision
   ensures result == RejectOutTooLarge
 =
-  chamber_ratify(true, 5, 64, 9, 8, 2, 2, true)
+  chamber_ratify(true, 5, 64, 3, 1, 2, 2, true)
 
-fn axiom_cap_ceiling_reject() -> Decision
+// tc13_cap_ceiling_reject: caps_at_exit=IoOutBounded(2), ceiling=Compute(1) -> CapCeilingViolated.
+fn tc13_cap_ceiling_reject() -> Decision
   ensures result == RejectCapCeilingViolated
 =
   chamber_ratify(true, 5, 64, 3, 8, 2, 1, true)
